@@ -35,6 +35,11 @@ fn summary_style(status: CheckStatus) -> Style {
 pub fn draw(f: &mut Frame, app: &mut App) {
     let area = f.area();
 
+    if app.splash {
+        draw_splash(f, area);
+        return;
+    }
+
     let chunks = Layout::vertical([
         Constraint::Length(2), // header
         Constraint::Min(1),   // body
@@ -45,6 +50,34 @@ pub fn draw(f: &mut Frame, app: &mut App) {
     draw_header(f, chunks[0], app);
     draw_body(f, chunks[1], app);
     draw_footer(f, chunks[2], app);
+}
+
+fn draw_splash(f: &mut Frame, area: Rect) {
+    let logo_lines = [
+        "▄▀█ █   █▀▀ █▀█ ▀█▀ █▀█ ▄▀█ █▀▀ ▄▀█",
+        "█▀█ █▄▄ ██▄ ██▀  █  █▀▀ █▀█ █▄▄ █▀█",
+    ];
+    let sep = "───────────────────────────────────────";
+    let sub = format!("Server health checker  ·  v{}", VERSION);
+
+    let content_height: u16 = 4; // 2 logo + 1 sep + 1 sub
+    let content_width = logo_lines[0].chars().count() as u16;
+
+    let top = area.height.saturating_sub(content_height) / 2;
+    let left = area.width.saturating_sub(content_width) / 2;
+
+    let logo_style = Style::default().fg(GREEN);
+    let sep_style = Style::default().fg(DIM);
+
+    let lines = vec![
+        Line::styled(logo_lines[0], logo_style),
+        Line::styled(logo_lines[1], logo_style),
+        Line::styled(sep, sep_style),
+        Line::styled(sub, Style::default().fg(Color::White)),
+    ];
+
+    let splash_area = Rect::new(left, top, content_width, content_height);
+    f.render_widget(Paragraph::new(lines), splash_area);
 }
 
 fn draw_header(f: &mut Frame, area: Rect, app: &App) {

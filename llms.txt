@@ -1,0 +1,129 @@
+# alertpaca
+
+> Proactive server health checker. Single Rust binary, terminal UI. Checks system resources, services, backups, TLS certificates, and open ports. Reports what's about to go wrong.
+
+## Quick start
+
+Requires Rust toolchain. Install from source:
+
+    git clone https://github.com/fabioconcina/alertpaca
+    cd alertpaca && cargo build --release
+    ./target/release/alertpaca
+
+## CLI modes
+
+### Interactive TUI (default)
+
+    alertpaca [-c path/to/config.toml]
+
+Full-screen terminal UI with auto-refresh (60s), keyboard navigation, and splash screen.
+
+Key bindings: q quit; r refresh; up/k scroll up; down/j scroll down.
+
+### JSON output (--json)
+
+    alertpaca --json
+
+Single run, JSON array to stdout. Suitable for piping to jq, scripts, or AI agents.
+
+Output format:
+
+    [
+      {
+        "section": "System",
+        "name": "cpu",
+        "status": "Ok",
+        "summary": "12% usage (4 cores)"
+      }
+    ]
+
+Status values: Ok, Warning, Critical, Skipped.
+Section values: System, Services, Backups, Certificates, Ports.
+
+### Human-readable table (--once)
+
+    alertpaca --once
+
+Single run, plain-text table to stdout.
+
+### MCP server (--mcp)
+
+    alertpaca --mcp
+
+Runs an MCP (Model Context Protocol) server on stdio. Exposes a `check_health` tool.
+
+Tool: check_health
+  Parameters: none
+  Returns: JSON array of check result objects (same schema as --json output)
+
+Claude Desktop configuration example:
+
+    {
+      "mcpServers": {
+        "alertpaca": {
+          "command": "/path/to/alertpaca",
+          "args": ["--mcp"]
+        }
+      }
+    }
+
+## Exit codes
+
+- 0: all checks passed (Ok or Skipped)
+- 1: error (config load failure, I/O error)
+- 2: at least one check returned Warning or Critical (--json and --once only)
+
+## Flags
+
+    -c, --config <path>  Path to config file (default: ~/.config/alertpaca/config.toml)
+    --json               Single run, JSON output, exit
+    --once               Single run, text table output, exit
+    --mcp                Run as MCP server (stdio)
+    --version            Print version and exit
+    -h, --help           Show help
+
+## What it checks
+
+- CPU usage: warn >80%, critical >95%
+- Memory usage: warn >80%, critical >95%
+- Disk usage: warn >80%, critical >90%, with fill-rate prediction
+- System load: warn > cores, critical > 2x cores
+- Uptime: informational
+- Systemd failed units: critical if any failed (Linux only)
+- Docker containers: warn if unhealthy/restarting (Linux only)
+- Backup freshness: configurable via config.toml (file glob, restic, zfs)
+- TLS certificate expiry: warn <30d, critical <7d
+- Port/service drift: warn if listeners disappear (Linux only)
+
+## Configuration
+
+Optional. Create ~/.config/alertpaca/config.toml:
+
+    [[backup]]
+    name = "documents"
+    type = "file"
+    path = "/mnt/backup/docs"
+    pattern = "backup-*.tar.gz"
+    max_age = "24h"
+
+    [[backup]]
+    name = "photos"
+    type = "restic"
+    repo = "/mnt/backup/restic-photos"
+    max_age = "7d"
+
+    [[backup]]
+    name = "tank/data"
+    type = "zfs"
+    dataset = "tank/data"
+    max_age = "1h"
+
+    [[certificate]]
+    endpoint = "nextcloud.home.lan:443"
+
+## State files
+
+Stored in ~/.local/share/alertpaca/:
+
+- history.json: disk usage history for fill-rate prediction
+- ports.json: last known listening ports for drift detection

@@ -74,10 +74,10 @@ fn check_one_cert(config: &CertificateConfig, tls_config: &Arc<ClientConfig>) ->
 }
 
 fn parse_endpoint(endpoint: &str) -> (&str, u16) {
-    if let Some((host, port_str)) = endpoint.rsplit_once(':') {
-        if let Ok(port) = port_str.parse::<u16>() {
-            return (host, port);
-        }
+    if let Some((host, port_str)) = endpoint.rsplit_once(':')
+        && let Ok(port) = port_str.parse::<u16>()
+    {
+        return (host, port);
     }
     (endpoint, 443)
 }

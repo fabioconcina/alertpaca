@@ -14,6 +14,8 @@ pub struct App {
     pub results: Vec<CheckResult>,
     pub last_check: Option<chrono::DateTime<chrono::Local>>,
     pub checking: bool,
+    pub splash: bool,
+    pub splash_start: Instant,
     pub scroll_offset: u16,
     pub content_height: u16,
     pub config: Config,
@@ -25,6 +27,8 @@ impl App {
             results: Vec::new(),
             last_check: None,
             checking: false,
+            splash: true,
+            splash_start: Instant::now(),
             scroll_offset: 0,
             content_height: 0,
             config,
@@ -56,48 +60,63 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
     let mut app = App::new(config);
     let tick_rate = Duration::from_millis(100);
     let refresh_interval = Duration::from_secs(60);
+    let splash_duration = Duration::from_secs(2);
 
-    // Initial check
-    let mut pending_rx = Some(trigger_refresh(app.config.clone()));
-    app.checking = true;
+    let mut pending_rx: Option<mpsc::Receiver<Vec<CheckResult>>> = None;
     let mut last_refresh = Instant::now();
 
     loop {
         let viewport_height = terminal.draw(|f| render::draw(f, &mut app))?.area.height;
 
-        if event::poll(tick_rate)? {
-            if let Event::Key(key) = event::read()? {
-                if key.kind != KeyEventKind::Press {
-                    continue;
-                }
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Char('r') => {
-                        if !app.checking {
-                            pending_rx = Some(trigger_refresh(app.config.clone()));
-                            app.checking = true;
-                            last_refresh = Instant::now();
-                        }
+        // Splash → main transition
+        if app.splash && app.splash_start.elapsed() >= splash_duration {
+            app.splash = false;
+            pending_rx = Some(trigger_refresh(app.config.clone()));
+            app.checking = true;
+            last_refresh = Instant::now();
+        }
+
+        if event::poll(tick_rate)?
+            && let Event::Key(key) = event::read()?
+        {
+            if key.kind != KeyEventKind::Press {
+                continue;
+            }
+            if app.splash {
+                // Any key dismisses splash early
+                app.splash = false;
+                pending_rx = Some(trigger_refresh(app.config.clone()));
+                app.checking = true;
+                last_refresh = Instant::now();
+                continue;
+            }
+            match key.code {
+                KeyCode::Char('q') => break,
+                KeyCode::Char('r') => {
+                    if !app.checking {
+                        pending_rx = Some(trigger_refresh(app.config.clone()));
+                        app.checking = true;
+                        last_refresh = Instant::now();
                     }
-                    KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
-                    KeyCode::Down | KeyCode::Char('j') => app.scroll_down(viewport_height),
-                    _ => {}
                 }
+                KeyCode::Up | KeyCode::Char('k') => app.scroll_up(),
+                KeyCode::Down | KeyCode::Char('j') => app.scroll_down(viewport_height),
+                _ => {}
             }
         }
 
         // Check for completed results
-        if let Some(ref rx) = pending_rx {
-            if let Ok(results) = rx.try_recv() {
-                app.results = results;
-                app.last_check = Some(chrono::Local::now());
-                app.checking = false;
-                pending_rx = None;
-            }
+        if let Some(ref rx) = pending_rx
+            && let Ok(results) = rx.try_recv()
+        {
+            app.results = results;
+            app.last_check = Some(chrono::Local::now());
+            app.checking = false;
+            pending_rx = None;
         }
 
         // Auto-refresh
-        if last_refresh.elapsed() >= refresh_interval && !app.checking {
+        if !app.splash && last_refresh.elapsed() >= refresh_interval && !app.checking {
             pending_rx = Some(trigger_refresh(app.config.clone()));
             app.checking = true;
             last_refresh = Instant::now();

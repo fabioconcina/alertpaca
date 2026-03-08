@@ -37,3 +37,10 @@ cargo clippy -- -D warnings
 - No openssl — use rustls
 - Graceful degradation: if a check fails, show Skipped status
 - Linux-specific features gated with `#[cfg(target_os = "linux")]`
+
+## Documentation
+
+When adding or changing features, **always update both**:
+
+- `README.md` — user-facing documentation with examples
+- `llms.txt` — LLM-friendly plain-text reference (same content, no markdown images/badges)

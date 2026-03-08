@@ -34,6 +34,91 @@ cargo build --release
 
 Press `q` to quit, `r` to refresh, `↑↓` to scroll.
 
+## CLI modes
+
+### Interactive TUI (default)
+
+```sh
+alertpaca [-c path/to/config.toml]
+```
+
+Full-screen terminal UI with auto-refresh (60s), keyboard navigation, and a splash screen on startup.
+
+| Key | Action |
+|-----|--------|
+| `q` | Quit |
+| `r` | Force immediate refresh |
+| `↑` / `k` | Scroll up |
+| `↓` / `j` | Scroll down |
+
+### JSON output (`--json`)
+
+```sh
+alertpaca --json
+```
+
+Runs all checks once, prints a JSON array to stdout, and exits. Suitable for piping to `jq`, scripts, or AI agents.
+
+```json
+[
+  {
+    "section": "System",
+    "name": "cpu",
+    "status": "Ok",
+    "summary": "12% usage (4 cores)"
+  },
+  {
+    "section": "Certificates",
+    "name": "nextcloud.home.lan:443",
+    "status": "Warning",
+    "summary": "expires in 21d"
+  }
+]
+```
+
+### Plain-text table (`--once`)
+
+```sh
+alertpaca --once
+```
+
+Runs all checks once, prints a human-readable table to stdout, and exits.
+
+### MCP server (`--mcp`)
+
+```sh
+alertpaca --mcp
+```
+
+Runs an [MCP](https://modelcontextprotocol.io) (Model Context Protocol) server on stdio, exposing a `check_health` tool. This allows AI agents (e.g. Claude Desktop, Claude Code) to check server health programmatically.
+
+**Tool:** `check_health`
+- **Parameters:** none
+- **Returns:** JSON array of check results (same schema as `--json` output)
+
+**Claude Desktop configuration:**
+
+```json
+{
+  "mcpServers": {
+    "alertpaca": {
+      "command": "/path/to/alertpaca",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+### Exit codes
+
+Exit codes apply to `--json` and `--once` modes:
+
+| Code | Meaning |
+|------|---------|
+| 0 | All checks passed (Ok or Skipped) |
+| 1 | Error (config load failure, I/O error) |
+| 2 | At least one check returned Warning or Critical |
+
 ## What it checks
 
 | Check | Auto-detected | Status |

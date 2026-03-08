@@ -125,10 +125,10 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
         let prediction = history.predict_days_until_full(&mount, total);
 
         let mut summary = format!("{:.0}% used ({} / {})", pct, format_bytes(used), format_bytes(total));
-        if let Some(days) = prediction {
-            if days < 365.0 {
-                summary.push_str(&format!(" — ~{} until full", format_days(days)));
-            }
+        if let Some(days) = prediction
+            && days < 365.0
+        {
+            summary.push_str(&format!(" — ~{} until full", format_days(days)));
         }
 
         results.push(CheckResult {
@@ -152,7 +152,7 @@ fn is_pseudo_fs(fs_type: &str, mount: &str) -> bool {
         "hugetlbfs", "binfmt_misc", "autofs", "efivarfs", "tracefs",
         "bpf", "nsfs", "overlay",
     ];
-    if pseudo_types.iter().any(|&t| fs_type == t) {
+    if pseudo_types.contains(&fs_type) {
         return true;
     }
     let pseudo_mounts = ["/dev", "/sys", "/proc", "/run"];

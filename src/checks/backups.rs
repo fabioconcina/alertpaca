@@ -59,7 +59,7 @@ fn check_one_backup(config: &BackupConfig) -> CheckResult {
             section: Section::Backups,
             name,
             status: CheckStatus::Skipped,
-            summary: format!("{}", e),
+            summary: e.to_string(),
         },
     }
 }
