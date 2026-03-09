@@ -2,6 +2,7 @@ mod checks;
 mod config;
 mod exitcode;
 mod mcpserver;
+mod notify;
 mod output;
 mod state;
 mod tui;
@@ -53,6 +54,9 @@ fn main() -> Result<()> {
 
     if cli.json || cli.once {
         let results = checks::run_all_checks(&config);
+        if let Some(ref notify_config) = config.notify {
+            notify::notify(notify_config, &results);
+        }
         let code = output::exit_code(&results);
 
         if cli.json {

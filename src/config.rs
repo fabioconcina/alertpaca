@@ -14,6 +14,8 @@ pub struct Config {
     pub endpoint: Vec<EndpointConfig>,
     #[serde(default)]
     pub dns: Vec<DnsConfig>,
+    #[serde(default)]
+    pub notify: Option<NotifyConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -87,6 +89,11 @@ pub struct DnsConfig {
     pub name: String,
     pub domain: String,
     pub server: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct NotifyConfig {
+    pub url: String,
 }
 
 fn default_ntp_server() -> String {

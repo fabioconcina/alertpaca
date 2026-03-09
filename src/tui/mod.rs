@@ -9,6 +9,7 @@ use ratatui::DefaultTerminal;
 
 use crate::checks::{self, CheckResult};
 use crate::config::Config;
+use crate::notify;
 
 pub struct App {
     pub results: Vec<CheckResult>,
@@ -109,6 +110,9 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
         if let Some(ref rx) = pending_rx
             && let Ok(results) = rx.try_recv()
         {
+            if let Some(ref notify_config) = app.config.notify {
+                notify::notify(notify_config, &results);
+            }
             app.results = results;
             app.last_check = Some(chrono::Local::now());
             app.checking = false;

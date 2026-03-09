@@ -139,9 +139,19 @@ Optional. Create ~/.config/alertpaca/config.toml:
     domain = "google.com"
     server = "127.0.0.1"
 
+    # Notifications on status changes (ntfy.sh, Slack, Discord, etc.)
+    [notify]
+    url = "https://ntfy.sh/your-topic-here"
+
     # Optional NTP config (defaults: pool.ntp.org, 100ms warn, 1000ms critical)
     [ntp]
     server = "pool.ntp.org"
+
+## Notifications
+
+When [notify] is configured, alertpaca POSTs to the URL on status changes only.
+Alerts on transition to Warning/Critical, recovery messages on return to Ok.
+Works with ntfy.sh, Slack webhooks, Discord webhooks, Gotify, or any POST endpoint.
 
 ## State files
 
@@ -149,3 +159,4 @@ Stored in ~/.local/share/alertpaca/:
 
 - history.json: disk usage history for fill-rate prediction
 - ports.json: last known listening ports for drift detection
+- last_status.json: previous check statuses for notification diffing

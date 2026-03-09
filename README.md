@@ -184,6 +184,10 @@ name = "Pi-hole"
 domain = "google.com"
 server = "127.0.0.1"       # optional, defaults to 127.0.0.1
 
+# Notifications — alert on status changes (ntfy.sh, Slack, Discord, etc.)
+[notify]
+url = "https://ntfy.sh/your-topic-here"
+
 # Optional — defaults to pool.ntp.org, 100ms warn, 1000ms critical
 [ntp]
 server = "pool.ntp.org"
@@ -191,12 +195,19 @@ server = "pool.ntp.org"
 # critical_ms = 1000
 ```
 
+## Notifications
+
+When `[notify]` is configured, alertpaca sends a POST to the URL whenever a check changes status. Alerts fire when checks transition to Warning/Critical, and recovery messages fire when they return to Ok. No notifications are sent when status stays the same.
+
+Works with [ntfy.sh](https://ntfy.sh), Slack incoming webhooks, Discord webhooks, Gotify, or any endpoint that accepts a POST with a text body.
+
 ## State files
 
 Stored in `~/.local/share/alertpaca/`:
 
 - `history.json` — disk usage history for fill prediction
 - `ports.json` — last known listening ports for drift detection
+- `last_status.json` — previous check statuses for notification diffing
 
 ## License
 
