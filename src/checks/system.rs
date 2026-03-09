@@ -60,6 +60,31 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
         ),
     });
 
+    // Swap
+    let total_swap = sys.total_swap();
+    let used_swap = sys.used_swap();
+    if total_swap > 0 {
+        let swap_pct = (used_swap as f64 / total_swap as f64) * 100.0;
+        let swap_status = if swap_pct > 90.0 {
+            CheckStatus::Critical
+        } else if swap_pct > 50.0 {
+            CheckStatus::Warning
+        } else {
+            CheckStatus::Ok
+        };
+        results.push(CheckResult {
+            section: Section::System,
+            name: "swap".into(),
+            status: swap_status,
+            summary: format!(
+                "{} / {} ({:.0}%)",
+                format_bytes(used_swap),
+                format_bytes(total_swap),
+                swap_pct
+            ),
+        });
+    }
+
     // Load average
     let load = System::load_average();
     let load_1 = load.one;

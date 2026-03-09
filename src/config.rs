@@ -8,6 +8,8 @@ pub struct Config {
     pub backup: Vec<BackupConfig>,
     #[serde(default)]
     pub certificate: Vec<CertificateConfig>,
+    #[serde(default)]
+    pub ntp: Option<NtpConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -57,6 +59,20 @@ impl BackupConfig {
 #[derive(Debug, Deserialize, Clone)]
 pub struct CertificateConfig {
     pub endpoint: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct NtpConfig {
+    #[serde(default = "default_ntp_server")]
+    pub server: String,
+    /// Warn threshold in milliseconds (default: 100)
+    pub warn_ms: Option<u64>,
+    /// Critical threshold in milliseconds (default: 1000)
+    pub critical_ms: Option<u64>,
+}
+
+fn default_ntp_server() -> String {
+    "pool.ntp.org".into()
 }
 
 fn config_path() -> PathBuf {

@@ -1,5 +1,6 @@
 pub mod backups;
 pub mod certificates;
+pub mod ntp;
 pub mod ports;
 pub mod services;
 pub mod system;
@@ -23,6 +24,7 @@ pub enum Section {
     Backups,
     Certificates,
     Ports,
+    Ntp,
 }
 
 impl Section {
@@ -33,6 +35,7 @@ impl Section {
             Section::Backups => "BACKUPS",
             Section::Certificates => "CERTIFICATES",
             Section::Ports => "PORTS",
+            Section::Ntp => "NTP",
         }
     }
 }
@@ -53,6 +56,7 @@ pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     results.extend(backups::check_backups(&config.backup));
     results.extend(certificates::check_certificates(&config.certificate));
     results.extend(ports::check_ports());
+    results.extend(ntp::check_ntp(&config.ntp));
 
     results
 }

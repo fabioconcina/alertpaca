@@ -125,6 +125,7 @@ Exit codes apply to `--json` and `--once` modes:
 |-------|:---:|--------|
 | CPU usage | ✓ | warn >80%, critical >95% |
 | Memory usage | ✓ | warn >80%, critical >95% |
+| Swap usage | ✓ | warn >50%, critical >90% |
 | Disk usage | ✓ | warn >80%, critical >90% |
 | Disk fill prediction | ✓ | estimates days until full |
 | System load | ✓ | warn > cores, critical > 2x cores |
@@ -134,6 +135,7 @@ Exit codes apply to `--json` and `--once` modes:
 | Backup freshness | config | warn at max_age, critical at 2x |
 | TLS certificate expiry | config | warn <30d, critical <7d |
 | Port/service drift | ✓ | warn if listeners disappear |
+| NTP clock skew | ✓ | warn >100ms, critical >1s |
 
 ## Configuration
 
@@ -165,6 +167,12 @@ endpoint = "nextcloud.home.lan:443"
 
 [[certificate]]
 endpoint = "jellyfin.home.lan:443"
+
+# Optional — defaults to pool.ntp.org, 100ms warn, 1000ms critical
+[ntp]
+server = "pool.ntp.org"
+# warn_ms = 100
+# critical_ms = 1000
 ```
 
 ## State files

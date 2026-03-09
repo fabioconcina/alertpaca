@@ -38,7 +38,7 @@ Output format:
     ]
 
 Status values: Ok, Warning, Critical, Skipped.
-Section values: System, Services, Backups, Certificates, Ports.
+Section values: System, Services, Backups, Certificates, Ports, Ntp.
 
 ### Human-readable table (--once)
 
@@ -86,6 +86,7 @@ Claude Desktop configuration example:
 
 - CPU usage: warn >80%, critical >95%
 - Memory usage: warn >80%, critical >95%
+- Swap usage: warn >50%, critical >90% (hidden if no swap)
 - Disk usage: warn >80%, critical >90%, with fill-rate prediction
 - System load: warn > cores, critical > 2x cores
 - Uptime: informational
@@ -94,6 +95,7 @@ Claude Desktop configuration example:
 - Backup freshness: configurable via config.toml (file glob, restic, zfs)
 - TLS certificate expiry: warn <30d, critical <7d
 - Port/service drift: warn if listeners disappear (Linux only)
+- NTP clock skew: warn >100ms, critical >1s (configurable server/thresholds)
 
 ## Configuration
 
@@ -120,6 +122,10 @@ Optional. Create ~/.config/alertpaca/config.toml:
 
     [[certificate]]
     endpoint = "nextcloud.home.lan:443"
+
+    # Optional NTP config (defaults: pool.ntp.org, 100ms warn, 1000ms critical)
+    [ntp]
+    server = "pool.ntp.org"
 
 ## State files
 
