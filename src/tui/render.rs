@@ -12,6 +12,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 const GREEN: Color = Color::Indexed(82);
 const YELLOW: Color = Color::Indexed(220);
 const RED: Color = Color::Indexed(196);
+const ORANGE: Color = Color::Indexed(208);
 const DIM: Color = Color::Indexed(243);
 
 fn status_icon(status: CheckStatus) -> Span<'static> {
@@ -66,7 +67,7 @@ fn draw_splash(f: &mut Frame, area: Rect) {
     let top = area.height.saturating_sub(content_height) / 2;
     let left = area.width.saturating_sub(content_width) / 2;
 
-    let logo_style = Style::default().fg(GREEN);
+    let logo_style = Style::default().fg(ORANGE);
     let sep_style = Style::default().fg(DIM);
 
     let lines = vec![
