@@ -7,6 +7,7 @@
 [![Rust](https://img.shields.io/badge/rust-stable-orange)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built with ratatui](https://img.shields.io/badge/tui-ratatui-purple)](https://ratatui.rs/)
+[![GitHub release](https://img.shields.io/github/v/release/fabioconcina/alertpaca)](https://github.com/fabioconcina/alertpaca/releases/latest)
 
 **Server health checker** — run it, see what needs attention.
 
