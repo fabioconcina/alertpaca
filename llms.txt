@@ -38,7 +38,7 @@ Output format:
     ]
 
 Status values: Ok, Warning, Critical, Skipped.
-Section values: System, Services, Backups, Certificates, Ports, Ntp.
+Section values: System, Services, Backups, Certificates, Ports, Ntp, Endpoints, Dns.
 
 ### Human-readable table (--once)
 
@@ -96,6 +96,8 @@ Claude Desktop configuration example:
 - TLS certificate expiry: warn <30d, critical <7d
 - Port/service drift: warn if listeners disappear (Linux only)
 - NTP clock skew: warn >100ms, critical >1s (configurable server/thresholds)
+- HTTP endpoints: configurable URL checks, critical if unreachable/5xx, warn if 4xx
+- DNS resolution: configurable domain+server checks, critical if fails, warn if >1s
 
 ## Configuration
 
@@ -122,6 +124,20 @@ Optional. Create ~/.config/alertpaca/config.toml:
 
     [[certificate]]
     endpoint = "nextcloud.home.lan:443"
+
+    [[endpoint]]
+    name = "Pi-hole"
+    url = "http://localhost:80"
+
+    [[endpoint]]
+    name = "Immich"
+    url = "http://localhost:2283"
+    # expect_status = 200
+
+    [[dns]]
+    name = "Pi-hole"
+    domain = "google.com"
+    server = "127.0.0.1"
 
     # Optional NTP config (defaults: pool.ntp.org, 100ms warn, 1000ms critical)
     [ntp]

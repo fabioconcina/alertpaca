@@ -10,6 +10,10 @@ pub struct Config {
     pub certificate: Vec<CertificateConfig>,
     #[serde(default)]
     pub ntp: Option<NtpConfig>,
+    #[serde(default)]
+    pub endpoint: Vec<EndpointConfig>,
+    #[serde(default)]
+    pub dns: Vec<DnsConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -69,6 +73,20 @@ pub struct NtpConfig {
     pub warn_ms: Option<u64>,
     /// Critical threshold in milliseconds (default: 1000)
     pub critical_ms: Option<u64>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct EndpointConfig {
+    pub name: String,
+    pub url: String,
+    pub expect_status: Option<u16>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct DnsConfig {
+    pub name: String,
+    pub domain: String,
+    pub server: Option<String>,
 }
 
 fn default_ntp_server() -> String {

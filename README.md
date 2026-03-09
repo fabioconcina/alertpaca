@@ -136,6 +136,8 @@ Exit codes apply to `--json` and `--once` modes:
 | TLS certificate expiry | config | warn <30d, critical <7d |
 | Port/service drift | ✓ | warn if listeners disappear |
 | NTP clock skew | ✓ | warn >100ms, critical >1s |
+| HTTP endpoints | config | critical if unreachable/5xx, warn if 4xx |
+| DNS resolution | config | critical if resolution fails, warn if >1s |
 
 ## Configuration
 
@@ -167,6 +169,20 @@ endpoint = "nextcloud.home.lan:443"
 
 [[certificate]]
 endpoint = "jellyfin.home.lan:443"
+
+[[endpoint]]
+name = "Pi-hole"
+url = "http://localhost:80"
+
+[[endpoint]]
+name = "Immich"
+url = "http://localhost:2283"
+# expect_status = 200  # optional, default: any 2xx/3xx is Ok
+
+[[dns]]
+name = "Pi-hole"
+domain = "google.com"
+server = "127.0.0.1"       # optional, defaults to 127.0.0.1
 
 # Optional — defaults to pool.ntp.org, 100ms warn, 1000ms critical
 [ntp]
