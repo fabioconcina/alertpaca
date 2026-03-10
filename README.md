@@ -46,11 +46,24 @@ See [MCP server](#mcp-server---mcp) below for Claude Desktop configuration.
 
 ## Quick start
 
-```bash
-# Build from source
-cargo build --release
+Download a prebuilt binary from [the latest release](https://github.com/fabioconcina/alertpaca/releases/latest):
 
-# Run — zero config needed
+```bash
+# Linux (x86_64)
+curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-linux-amd64
+chmod +x alertpaca
+./alertpaca
+
+# macOS (Apple Silicon)
+curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-darwin-arm64
+chmod +x alertpaca
+./alertpaca
+```
+
+Or build from source:
+
+```bash
+cargo build --release
 ./target/release/alertpaca
 ```
 

@@ -77,7 +77,17 @@ Use exit codes in scripts: `alertpaca --json || notify-send "server needs attent
 
 ## Quick start
 
-Requires Rust toolchain. Install from source:
+Download a prebuilt binary from the latest release:
+
+    # Linux (x86_64)
+    curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-linux-amd64
+    chmod +x alertpaca && ./alertpaca
+
+    # macOS (Apple Silicon)
+    curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-darwin-arm64
+    chmod +x alertpaca && ./alertpaca
+
+Or build from source (requires Rust toolchain):
 
     git clone https://github.com/fabioconcina/alertpaca
     cd alertpaca && cargo build --release
