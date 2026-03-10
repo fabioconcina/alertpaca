@@ -23,6 +23,27 @@ It predicts when disks will fill up, checks if backups actually ran, notices whe
   <img src="assets/screenshot.png" alt="alertpaca screenshot" width="700">
 </p>
 
+## AI & Automation
+
+alertpaca is built for AI agents and scripts, not just humans.
+
+- **MCP server** — `alertpaca --mcp` exposes a `check_health` tool via [Model Context Protocol](https://modelcontextprotocol.io). Connect it to Claude Desktop, Claude Code, or any MCP client.
+- **JSON output** — `alertpaca --json` returns structured results. Pipe to `jq`, feed to an LLM, or parse in scripts.
+- **Exit codes** — `0` = healthy, `2` = something needs attention. Use in CI, cron, or agent workflows.
+
+```sh
+# Ask an LLM to summarize server health
+alertpaca --json | llm "summarize health, flag anything urgent"
+
+# Filter problems
+alertpaca --json | jq '.[] | select(.status != "Ok")'
+
+# Alert if anything is wrong
+alertpaca --once || notify-send "server needs attention"
+```
+
+See [MCP server](#mcp-server---mcp) below for Claude Desktop configuration.
+
 ## Quick start
 
 ```bash
