@@ -16,6 +16,14 @@ pub struct Config {
     pub dns: Vec<DnsConfig>,
     #[serde(default)]
     pub notify: Option<NotifyConfig>,
+    #[serde(default)]
+    pub systemd: Option<SystemdConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct SystemdConfig {
+    #[serde(default)]
+    pub ignore: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]

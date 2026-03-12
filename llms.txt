@@ -126,7 +126,7 @@ Single run, plain-text table to stdout.
 - Disk usage: warn >80%, critical >90%, with fill-rate prediction
 - System load: warn > cores, critical > 2x cores
 - Uptime: informational
-- Systemd failed units: critical if any failed (Linux only)
+- Systemd failed units: critical if any failed, configurable ignore list (Linux only)
 - Docker containers: warn if unhealthy/restarting (Linux only)
 - Backup freshness: configurable via config.toml (file glob, restic, zfs)
 - TLS certificate expiry: warn <30d, critical <7d
@@ -178,6 +178,10 @@ Optional. Create ~/.config/alertpaca/config.toml:
     # Notifications on status changes (ntfy.sh, Slack, Discord, etc.)
     [notify]
     url = "https://ntfy.sh/your-topic-here"
+
+    # Optional — ignore noisy systemd units
+    [systemd]
+    ignore = ["systemd-networkd-wait-online.service"]
 
     # Optional NTP config (defaults: pool.ntp.org, 500ms warn, 1000ms critical)
     [ntp]

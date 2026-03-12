@@ -165,7 +165,7 @@ Exit codes apply to `--json` and `--once` modes:
 | Disk fill prediction | ✓ | estimates days until full |
 | System load | ✓ | warn > cores, critical > 2x cores |
 | Uptime | ✓ | informational |
-| Systemd failed units | ✓ | critical if any failed |
+| Systemd failed units | ✓ | critical if any failed (configurable ignore list) |
 | Docker containers | ✓ | warn if unhealthy/restarting |
 | Backup freshness | config | warn at max_age, critical at 2x |
 | TLS certificate expiry | config | warn <30d, critical <7d |
@@ -222,6 +222,10 @@ server = "127.0.0.1"       # optional, defaults to 127.0.0.1
 # Notifications — alert on status changes (ntfy.sh, Slack, Discord, etc.)
 [notify]
 url = "https://ntfy.sh/your-topic-here"
+
+# Optional — ignore noisy systemd units
+[systemd]
+ignore = ["systemd-networkd-wait-online.service"]
 
 # Optional — defaults to pool.ntp.org, 500ms warn, 1000ms critical
 [ntp]

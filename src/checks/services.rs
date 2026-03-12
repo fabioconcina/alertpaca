@@ -2,15 +2,16 @@ use std::io::{Read, Write};
 use std::process::Command;
 
 use super::{CheckResult, CheckStatus, Section};
+use crate::config::SystemdConfig;
 
-pub fn check_services() -> Vec<CheckResult> {
+pub fn check_services(systemd_config: &Option<SystemdConfig>) -> Vec<CheckResult> {
     let mut results = Vec::new();
-    results.extend(check_systemd());
+    results.extend(check_systemd(systemd_config));
     results.extend(check_docker());
     results
 }
 
-fn check_systemd() -> Vec<CheckResult> {
+fn check_systemd(config: &Option<SystemdConfig>) -> Vec<CheckResult> {
     let output = match Command::new("systemctl")
         .args(["--no-pager", "--plain", "list-units", "--state=failed", "--no-legend"])
         .output()
@@ -26,11 +27,14 @@ fn check_systemd() -> Vec<CheckResult> {
         }
     };
 
+    let ignore = config.as_ref().map(|c| &c.ignore[..]).unwrap_or(&[]);
+
     let stdout = String::from_utf8_lossy(&output.stdout);
     let failed: Vec<&str> = stdout
         .lines()
         .filter(|l| !l.trim().is_empty())
         .map(|l| l.split_whitespace().next().unwrap_or("unknown"))
+        .filter(|unit| !ignore.iter().any(|i| i == unit))
         .collect();
 
     if failed.is_empty() {

@@ -58,7 +58,7 @@ pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     results.extend(system::check_system(config));
-    results.extend(services::check_services());
+    results.extend(services::check_services(&config.systemd));
     results.extend(backups::check_backups(&config.backup));
     results.extend(certificates::check_certificates(&config.certificate));
     results.extend(ports::check_ports());
