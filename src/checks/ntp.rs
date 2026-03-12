@@ -14,7 +14,7 @@ pub fn check_ntp(config: &Option<NtpConfig>) -> Vec<CheckResult> {
         .map(|c| c.server.as_str())
         .unwrap_or("pool.ntp.org");
 
-    let warn_ms = config.as_ref().and_then(|c| c.warn_ms).unwrap_or(100);
+    let warn_ms = config.as_ref().and_then(|c| c.warn_ms).unwrap_or(500);
     let critical_ms = config.as_ref().and_then(|c| c.critical_ms).unwrap_or(1000);
 
     match query_ntp_offset(server) {

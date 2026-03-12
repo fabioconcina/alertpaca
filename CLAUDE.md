@@ -31,6 +31,10 @@ cargo clippy -- -D warnings
 - State files in `~/.local/share/alertpaca/`
 - Config in `~/.config/alertpaca/config.toml`
 
+## Version
+
+Single source of truth: `Cargo.toml` (`version` field).
+
 ## Conventions
 
 - Keep dependencies minimal

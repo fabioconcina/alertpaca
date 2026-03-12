@@ -170,7 +170,7 @@ Exit codes apply to `--json` and `--once` modes:
 | Backup freshness | config | warn at max_age, critical at 2x |
 | TLS certificate expiry | config | warn <30d, critical <7d |
 | Port/service drift | ✓ | warn if listeners disappear |
-| NTP clock skew | ✓ | warn >100ms, critical >1s |
+| NTP clock skew | ✓ | warn >500ms, critical >1s |
 | HTTP endpoints | config | critical if unreachable/5xx, warn if 4xx |
 | DNS resolution | config | critical if resolution fails, warn if >1s |
 
@@ -223,10 +223,10 @@ server = "127.0.0.1"       # optional, defaults to 127.0.0.1
 [notify]
 url = "https://ntfy.sh/your-topic-here"
 
-# Optional — defaults to pool.ntp.org, 100ms warn, 1000ms critical
+# Optional — defaults to pool.ntp.org, 500ms warn, 1000ms critical
 [ntp]
 server = "pool.ntp.org"
-# warn_ms = 100
+# warn_ms = 500
 # critical_ms = 1000
 ```
 

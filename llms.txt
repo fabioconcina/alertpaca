@@ -131,7 +131,7 @@ Single run, plain-text table to stdout.
 - Backup freshness: configurable via config.toml (file glob, restic, zfs)
 - TLS certificate expiry: warn <30d, critical <7d
 - Port/service drift: warn if listeners disappear (Linux only)
-- NTP clock skew: warn >100ms, critical >1s (configurable server/thresholds)
+- NTP clock skew: warn >500ms, critical >1s (configurable server/thresholds)
 - HTTP endpoints: configurable URL checks, critical if unreachable/5xx, warn if 4xx
 - DNS resolution: configurable domain+server checks, critical if fails, warn if >1s
 
@@ -179,7 +179,7 @@ Optional. Create ~/.config/alertpaca/config.toml:
     [notify]
     url = "https://ntfy.sh/your-topic-here"
 
-    # Optional NTP config (defaults: pool.ntp.org, 100ms warn, 1000ms critical)
+    # Optional NTP config (defaults: pool.ntp.org, 500ms warn, 1000ms critical)
     [ntp]
     server = "pool.ntp.org"
 
