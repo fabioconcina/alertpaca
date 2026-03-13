@@ -65,7 +65,7 @@ Output schema:
     ]
 
 Status values: Ok, Warning, Critical, Skipped.
-Section values: System, Services, Backups, Certificates, Ports, Ntp, Endpoints, Dns.
+Section values: System, Services, Backups, Certificates, Ports, Ntp, Endpoints, Dns, Updates.
 
 ### Exit codes
 
@@ -134,6 +134,7 @@ Single run, plain-text table to stdout.
 - NTP clock skew: warn >500ms, critical >1s (configurable server/thresholds)
 - HTTP endpoints: configurable URL checks, critical if unreachable/5xx, warn if 4xx
 - DNS resolution: configurable domain+server checks, critical if fails, warn if >1s
+- Pending updates: shows upgradable apt packages, warns on security updates (Linux only)
 
 ## Configuration
 

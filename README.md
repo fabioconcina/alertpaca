@@ -173,6 +173,7 @@ Exit codes apply to `--json` and `--once` modes:
 | NTP clock skew | ✓ | warn >500ms, critical >1s |
 | HTTP endpoints | config | critical if unreachable/5xx, warn if 4xx |
 | DNS resolution | config | critical if resolution fails, warn if >1s |
+| Pending updates | ✓ | shows upgradable packages, warns on security updates |
 
 ## Configuration
 

@@ -6,6 +6,7 @@ pub mod ntp;
 pub mod ports;
 pub mod services;
 pub mod system;
+pub mod updates;
 
 use serde::Serialize;
 
@@ -29,6 +30,7 @@ pub enum Section {
     Ntp,
     Endpoints,
     Dns,
+    Updates,
 }
 
 impl Section {
@@ -42,6 +44,7 @@ impl Section {
             Section::Ntp => "NTP",
             Section::Endpoints => "ENDPOINTS",
             Section::Dns => "DNS",
+            Section::Updates => "UPDATES",
         }
     }
 }
@@ -65,6 +68,7 @@ pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     results.extend(ntp::check_ntp(&config.ntp));
     results.extend(endpoints::check_endpoints(&config.endpoint));
     results.extend(dns::check_dns(&config.dns));
+    results.extend(updates::check_updates());
 
     results
 }
