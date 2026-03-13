@@ -174,6 +174,7 @@ Exit codes apply to `--json` and `--once` modes:
 | HTTP endpoints | config | critical if unreachable/5xx, warn if 4xx |
 | DNS resolution | config | critical if resolution fails, warn if >1s |
 | Pending updates | ✓ | shows upgradable packages, warns on security updates |
+| Cron jobs | ✓ | parses crontab, warns if scheduled jobs show no evidence of running |
 
 ## Configuration
 
@@ -233,6 +234,10 @@ ignore = ["systemd-networkd-wait-online.service"]
 server = "pool.ntp.org"
 # warn_ms = 500
 # critical_ms = 1000
+
+# Optional — ignore specific cron commands (substring match)
+[cron]
+ignore = ["run-parts"]
 ```
 
 ## Notifications

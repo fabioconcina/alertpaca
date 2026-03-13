@@ -65,7 +65,7 @@ Output schema:
     ]
 
 Status values: Ok, Warning, Critical, Skipped.
-Section values: System, Services, Backups, Certificates, Ports, Ntp, Endpoints, Dns, Updates.
+Section values: System, Services, Backups, Certificates, Ports, Ntp, Endpoints, Dns, Updates, Cron.
 
 ### Exit codes
 
@@ -135,6 +135,7 @@ Single run, plain-text table to stdout.
 - HTTP endpoints: configurable URL checks, critical if unreachable/5xx, warn if 4xx
 - DNS resolution: configurable domain+server checks, critical if fails, warn if >1s
 - Pending updates: shows upgradable apt packages, warns on security updates (Linux only)
+- Cron jobs: parses crontab + /etc/cron.d, checks journald/syslog for evidence of execution, warns if missed (Linux only)
 
 ## Configuration
 
@@ -187,6 +188,10 @@ Optional. Create ~/.config/alertpaca/config.toml:
     # Optional NTP config (defaults: pool.ntp.org, 500ms warn, 1000ms critical)
     [ntp]
     server = "pool.ntp.org"
+
+    # Optional — ignore specific cron commands (substring match)
+    [cron]
+    ignore = ["run-parts"]
 
 ## Notifications
 

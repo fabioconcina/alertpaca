@@ -1,5 +1,7 @@
 pub mod backups;
 pub mod certificates;
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub mod cron;
 pub mod dns;
 pub mod endpoints;
 pub mod ntp;
@@ -31,6 +33,8 @@ pub enum Section {
     Endpoints,
     Dns,
     Updates,
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    Cron,
 }
 
 impl Section {
@@ -45,6 +49,7 @@ impl Section {
             Section::Endpoints => "ENDPOINTS",
             Section::Dns => "DNS",
             Section::Updates => "UPDATES",
+            Section::Cron => "CRON",
         }
     }
 }
@@ -69,6 +74,7 @@ pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     results.extend(endpoints::check_endpoints(&config.endpoint));
     results.extend(dns::check_dns(&config.dns));
     results.extend(updates::check_updates());
+    results.extend(cron::check_cron(&config.cron));
 
     results
 }

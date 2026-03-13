@@ -18,6 +18,16 @@ pub struct Config {
     pub notify: Option<NotifyConfig>,
     #[serde(default)]
     pub systemd: Option<SystemdConfig>,
+    #[serde(default)]
+    pub cron: Option<CronConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+pub struct CronConfig {
+    /// Command patterns to ignore (substring match)
+    #[serde(default)]
+    pub ignore: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
