@@ -10,9 +10,13 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Run the MCP server on stdio, blocking until stdin closes.
 pub fn run(config: &Config) -> io::Result<()> {
     let stdin = io::stdin().lock();
-    let mut stdout = io::stdout().lock();
+    let stdout = io::stdout().lock();
+    run_with_io(stdin, stdout, config)
+}
 
-    for line in stdin.lines() {
+/// Process MCP JSON-RPC messages from `input`, writing responses to `output`.
+pub fn run_with_io(input: impl BufRead, mut output: impl Write, config: &Config) -> io::Result<()> {
+    for line in input.lines() {
         let line = line?;
         if line.trim().is_empty() {
             continue;
@@ -21,7 +25,7 @@ pub fn run(config: &Config) -> io::Result<()> {
         let req: Value = match serde_json::from_str(&line) {
             Ok(v) => v,
             Err(_) => {
-                write_response(&mut stdout, json_rpc_error(Value::Null, -32700, "Parse error"))?;
+                write_response(&mut output, json_rpc_error(Value::Null, -32700, "Parse error"))?;
                 continue;
             }
         };
@@ -38,7 +42,7 @@ pub fn run(config: &Config) -> io::Result<()> {
             _ => json_rpc_error(id, -32601, &format!("Method not found: {method}")),
         };
 
-        write_response(&mut stdout, response)?;
+        write_response(&mut output, response)?;
     }
 
     Ok(())
@@ -124,4 +128,84 @@ fn handle_tools_call(id: &Value, req: &Value, config: &Config) -> Value {
             "isError": false
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::BufReader;
+
+    fn default_config() -> Config {
+        Config::default()
+    }
+
+    fn send_and_receive(input: &str, config: &Config) -> Vec<Value> {
+        let reader = BufReader::new(input.as_bytes());
+        let mut output = Vec::new();
+        run_with_io(reader, &mut output, config).unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        output_str
+            .lines()
+            .filter(|l| !l.is_empty())
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect()
+    }
+
+    #[test]
+    fn test_initialize() {
+        let config = default_config();
+        let input = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","clientInfo":{"name":"test","version":"0.1"},"capabilities":{}}}"#;
+
+        let responses = send_and_receive(input, &config);
+        assert_eq!(responses.len(), 1);
+
+        let result = &responses[0]["result"];
+        assert_eq!(result["protocolVersion"], "2024-11-05");
+        assert_eq!(result["serverInfo"]["name"], "alertpaca");
+        assert_eq!(result["capabilities"]["tools"], json!({}));
+    }
+
+    #[test]
+    fn test_tools_list() {
+        let config = default_config();
+        let input = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#;
+
+        let responses = send_and_receive(input, &config);
+        assert_eq!(responses.len(), 1);
+
+        let tools = responses[0]["result"]["tools"].as_array().unwrap();
+        assert_eq!(tools.len(), 1);
+        assert_eq!(tools[0]["name"], "check_health");
+    }
+
+    #[test]
+    fn test_ping() {
+        let config = default_config();
+        let input = r#"{"jsonrpc":"2.0","id":3,"method":"ping"}"#;
+
+        let responses = send_and_receive(input, &config);
+        assert_eq!(responses.len(), 1);
+        assert_eq!(responses[0]["id"], 3);
+        assert!(responses[0]["result"].is_object());
+    }
+
+    #[test]
+    fn test_unknown_method() {
+        let config = default_config();
+        let input = r#"{"jsonrpc":"2.0","id":4,"method":"nonexistent"}"#;
+
+        let responses = send_and_receive(input, &config);
+        assert_eq!(responses.len(), 1);
+        assert_eq!(responses[0]["error"]["code"], -32601);
+    }
+
+    #[test]
+    fn test_notifications_ignored() {
+        let config = default_config();
+        let input = r#"{"jsonrpc":"2.0","method":"notifications/initialized"}"#;
+
+        let responses = send_and_receive(input, &config);
+        assert_eq!(responses.len(), 0);
+    }
 }
