@@ -12,14 +12,19 @@ pub fn check_updates() -> Vec<CheckResult> {
                     summary: "system is up to date".into(),
                 }]
             } else {
-                let status = if security > 0 {
+                let auto_updates = is_unattended_upgrades_active();
+                let status = if security > 0 && !auto_updates {
                     CheckStatus::Warning
                 } else {
                     CheckStatus::Ok
                 };
 
                 let summary = if security > 0 {
-                    format!("{} upgradable ({} security)", total, security)
+                    if auto_updates {
+                        format!("{} upgradable ({} security, auto)", total, security)
+                    } else {
+                        format!("{} upgradable ({} security)", total, security)
+                    }
                 } else {
                     format!("{} upgradable", total)
                 };
@@ -81,4 +86,14 @@ fn query_apt_updates() -> Result<(usize, usize), String> {
     }
 
     Ok((total, security))
+}
+
+#[cfg(target_os = "linux")]
+fn is_unattended_upgrades_active() -> bool {
+    use std::process::Command;
+    Command::new("systemctl")
+        .args(["is-active", "--quiet", "unattended-upgrades"])
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
 }
