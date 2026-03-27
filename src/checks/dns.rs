@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 use super::{CheckResult, CheckStatus, Section};
 use crate::config::DnsConfig;
 
-pub fn check_dns(configs: &[DnsConfig]) -> Vec<CheckResult> {
+pub(crate) fn check_dns(configs: &[DnsConfig]) -> Vec<CheckResult> {
     if configs.is_empty() {
         return vec![];
     }

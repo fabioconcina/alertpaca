@@ -3,7 +3,7 @@ use super::{CheckResult, CheckStatus, Section};
 #[cfg(target_os = "linux")]
 use crate::state::{Listener, PortState};
 
-pub fn check_ports() -> Vec<CheckResult> {
+pub(crate) fn check_ports() -> Vec<CheckResult> {
     #[cfg(target_os = "linux")]
     {
         check_ports_linux()

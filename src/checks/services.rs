@@ -4,7 +4,7 @@ use std::process::Command;
 use super::{CheckResult, CheckStatus, Section};
 use crate::config::SystemdConfig;
 
-pub fn check_services(systemd_config: &Option<SystemdConfig>) -> Vec<CheckResult> {
+pub(crate) fn check_services(systemd_config: &Option<SystemdConfig>) -> Vec<CheckResult> {
     let mut results = Vec::new();
     results.extend(check_systemd(systemd_config));
     results.extend(check_docker());
@@ -208,4 +208,49 @@ fn parse_docker_containers(containers: &[serde_json::Value]) -> Vec<CheckResult>
     }
 
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_docker_healthy() {
+        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"State": "running", "Status": "Up 2 hours", "Names": ["/nginx"]}
+        ]"#).unwrap();
+        let results = parse_docker_containers(&containers);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].status, CheckStatus::Ok);
+        assert!(results[0].summary.contains("1 container healthy"));
+    }
+
+    #[test]
+    fn test_parse_docker_unhealthy() {
+        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"State": "running", "Status": "Up 2 hours (unhealthy)", "Names": ["/app"]},
+            {"State": "running", "Status": "Up 1 hour", "Names": ["/db"]}
+        ]"#).unwrap();
+        let results = parse_docker_containers(&containers);
+        assert!(results.iter().any(|r| r.status == CheckStatus::Warning));
+        assert!(results.iter().any(|r| r.status == CheckStatus::Ok));
+    }
+
+    #[test]
+    fn test_parse_docker_restarting() {
+        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+            {"State": "restarting", "Status": "Restarting", "Names": ["/redis"]}
+        ]"#).unwrap();
+        let results = parse_docker_containers(&containers);
+        assert!(results.iter().any(|r| r.status == CheckStatus::Warning && r.summary.contains("redis")));
+    }
+
+    #[test]
+    fn test_parse_docker_empty() {
+        let containers: Vec<serde_json::Value> = vec![];
+        let results = parse_docker_containers(&containers);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].status, CheckStatus::Ok);
+        assert!(results[0].summary.contains("no containers"));
+    }
 }

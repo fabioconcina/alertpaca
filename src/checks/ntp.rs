@@ -8,7 +8,7 @@ use crate::config::NtpConfig;
 /// Difference in seconds: 70 years (with 17 leap years).
 const NTP_UNIX_OFFSET: u64 = 2_208_988_800;
 
-pub fn check_ntp(config: &Option<NtpConfig>) -> Vec<CheckResult> {
+pub(crate) fn check_ntp(config: &Option<NtpConfig>) -> Vec<CheckResult> {
     let server = config
         .as_ref()
         .map(|c| c.server.as_str())

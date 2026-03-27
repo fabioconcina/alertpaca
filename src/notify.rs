@@ -6,18 +6,13 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::checks::{CheckResult, CheckStatus};
+use crate::checks::{CheckResult, CheckStatus, tls_client_config};
 use crate::config::NotifyConfig;
+use crate::state::data_dir;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 struct LastStatus {
     checks: HashMap<String, String>,
-}
-
-fn data_dir() -> std::path::PathBuf {
-    dirs::data_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("~/.local/share"))
-        .join("alertpaca")
 }
 
 fn status_label(s: CheckStatus) -> &'static str {
@@ -34,7 +29,7 @@ fn is_problem(s: CheckStatus) -> bool {
 }
 
 /// Check results against previous state, send notifications for changes, update state.
-pub fn notify(config: &NotifyConfig, results: &[CheckResult]) {
+pub(crate) fn notify(config: &NotifyConfig, results: &[CheckResult]) {
     let path = data_dir().join("last_status.json");
 
     let previous: LastStatus = fs::read_to_string(&path)
@@ -155,16 +150,9 @@ fn send_ntfy(url: &str, body: &str) -> Result<(), String> {
 
     if is_https {
         use rustls::pki_types::ServerName;
-        use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
-        use std::sync::Arc;
+        use rustls::{ClientConnection, StreamOwned};
 
-        let mut root_store = RootCertStore::empty();
-        root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-        let tls_config = Arc::new(
-            ClientConfig::builder()
-                .with_root_certificates(root_store)
-                .with_no_client_auth(),
-        );
+        let tls_config = tls_client_config();
         let server_name = ServerName::try_from(host.to_string())
             .map_err(|e| format!("hostname: {}", e))?;
         let conn = ClientConnection::new(tls_config, server_name)

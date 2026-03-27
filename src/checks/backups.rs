@@ -4,7 +4,7 @@ use std::time::SystemTime;
 use super::{CheckResult, CheckStatus, Section};
 use crate::config::{parse_duration_secs, BackupConfig};
 
-pub fn check_backups(configs: &[BackupConfig]) -> Vec<CheckResult> {
+pub(crate) fn check_backups(configs: &[BackupConfig]) -> Vec<CheckResult> {
     configs.iter().map(check_one_backup).collect()
 }
 
@@ -76,7 +76,7 @@ fn check_file_backup(path: &str, pattern: &str) -> Result<i64, String> {
         let meta = entry.metadata().map_err(|e| format!("stat error: {}", e))?;
         let modified = meta.modified().map_err(|e| format!("mtime error: {}", e))?;
 
-        if newest.is_none() || modified > newest.unwrap() {
+        if newest.is_none_or(|n| modified > n) {
             newest = Some(modified);
         }
     }
@@ -156,5 +156,17 @@ fn format_age(secs: i64) -> String {
         format!("{}h", secs / 3600)
     } else {
         format!("{}d", secs / 86400)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_age() {
+        assert_eq!(format_age(1800), "30m");
+        assert_eq!(format_age(7200), "2h");
+        assert_eq!(format_age(172800), "2d");
     }
 }

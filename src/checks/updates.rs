@@ -1,7 +1,7 @@
 use super::{CheckResult, CheckStatus, Section};
 
 #[cfg(target_os = "linux")]
-pub fn check_updates() -> Vec<CheckResult> {
+pub(crate) fn check_updates() -> Vec<CheckResult> {
     match query_apt_updates() {
         Ok((total, security)) => {
             if total == 0 {
@@ -50,7 +50,7 @@ pub fn check_updates() -> Vec<CheckResult> {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn check_updates() -> Vec<CheckResult> {
+pub(crate) fn check_updates() -> Vec<CheckResult> {
     vec![CheckResult {
         section: Section::Updates,
         name: "packages".into(),

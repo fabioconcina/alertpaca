@@ -4,44 +4,22 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use rustls::pki_types::ServerName;
-use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
+use rustls::{ClientConfig, ClientConnection, StreamOwned};
 
-use super::{CheckResult, CheckStatus, Section};
+use super::{CheckResult, CheckStatus, Section, tls_client_config};
 use crate::config::CertificateConfig;
 
-pub fn check_certificates(configs: &[CertificateConfig]) -> Vec<CheckResult> {
+pub(crate) fn check_certificates(configs: &[CertificateConfig]) -> Vec<CheckResult> {
     if configs.is_empty() {
         return vec![];
     }
 
-    let tls_config = match build_tls_config() {
-        Ok(c) => Arc::new(c),
-        Err(e) => {
-            return vec![CheckResult {
-                section: Section::Certificates,
-                name: "tls".into(),
-                status: CheckStatus::Skipped,
-                summary: format!("TLS init failed: {}", e),
-                ..Default::default()
-            }];
-        }
-    };
+    let tls_config = tls_client_config();
 
     configs
         .iter()
         .map(|c| check_one_cert(c, &tls_config))
         .collect()
-}
-
-fn build_tls_config() -> Result<ClientConfig, String> {
-    let mut root_store = RootCertStore::empty();
-    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-    let config = ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth();
-
-    Ok(config)
 }
 
 fn check_one_cert(config: &CertificateConfig, tls_config: &Arc<ClientConfig>) -> CheckResult {

@@ -1,6 +1,6 @@
-pub mod render;
+mod render;
 
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -11,7 +11,7 @@ use crate::checks::{self, CheckResult};
 use crate::config::Config;
 use crate::notify;
 
-pub struct App {
+pub(super) struct App {
     pub results: Vec<CheckResult>,
     pub last_check: Option<chrono::DateTime<chrono::Local>>,
     pub checking: bool,
@@ -19,11 +19,11 @@ pub struct App {
     pub splash_start: Instant,
     pub scroll_offset: u16,
     pub content_height: u16,
-    pub config: Config,
+    pub config: Arc<Config>,
 }
 
 impl App {
-    pub fn new(config: Config) -> Self {
+    fn new(config: Arc<Config>) -> Self {
         Self {
             results: Vec::new(),
             last_check: None,
@@ -48,7 +48,8 @@ impl App {
     }
 }
 
-fn trigger_refresh(config: Config) -> mpsc::Receiver<Vec<CheckResult>> {
+fn trigger_refresh(config: &Arc<Config>) -> mpsc::Receiver<Vec<CheckResult>> {
+    let config = Arc::clone(config);
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {
         let results = checks::run_all_checks(&config);
@@ -57,8 +58,8 @@ fn trigger_refresh(config: Config) -> mpsc::Receiver<Vec<CheckResult>> {
     rx
 }
 
-pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
-    let mut app = App::new(config);
+pub(crate) fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
+    let mut app = App::new(Arc::new(config));
     let tick_rate = Duration::from_millis(100);
     let refresh_interval = Duration::from_secs(60);
     let splash_duration = Duration::from_secs(2);
@@ -72,7 +73,7 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
         // Splash → main transition
         if app.splash && app.splash_start.elapsed() >= splash_duration {
             app.splash = false;
-            pending_rx = Some(trigger_refresh(app.config.clone()));
+            pending_rx = Some(trigger_refresh(&app.config));
             app.checking = true;
             last_refresh = Instant::now();
         }
@@ -86,7 +87,7 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
             if app.splash {
                 // Any key dismisses splash early
                 app.splash = false;
-                pending_rx = Some(trigger_refresh(app.config.clone()));
+                pending_rx = Some(trigger_refresh(&app.config));
                 app.checking = true;
                 last_refresh = Instant::now();
                 continue;
@@ -95,7 +96,7 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
                 KeyCode::Char('q') => break,
                 KeyCode::Char('r') => {
                     if !app.checking {
-                        pending_rx = Some(trigger_refresh(app.config.clone()));
+                        pending_rx = Some(trigger_refresh(&app.config));
                         app.checking = true;
                         last_refresh = Instant::now();
                     }
@@ -121,7 +122,7 @@ pub fn run(terminal: &mut DefaultTerminal, config: Config) -> Result<()> {
 
         // Auto-refresh
         if !app.splash && last_refresh.elapsed() >= refresh_interval && !app.checking {
-            pending_rx = Some(trigger_refresh(app.config.clone()));
+            pending_rx = Some(trigger_refresh(&app.config));
             app.checking = true;
             last_refresh = Instant::now();
         }

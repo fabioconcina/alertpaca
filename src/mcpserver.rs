@@ -8,14 +8,14 @@ use crate::config::Config;
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Run the MCP server on stdio, blocking until stdin closes.
-pub fn run(config: &Config) -> io::Result<()> {
+pub(crate) fn run(config: &Config) -> io::Result<()> {
     let stdin = io::stdin().lock();
     let stdout = io::stdout().lock();
     run_with_io(stdin, stdout, config)
 }
 
 /// Process MCP JSON-RPC messages from `input`, writing responses to `output`.
-pub fn run_with_io(input: impl BufRead, mut output: impl Write, config: &Config) -> io::Result<()> {
+fn run_with_io(input: impl BufRead, mut output: impl Write, config: &Config) -> io::Result<()> {
     for line in input.lines() {
         let line = line?;
         if line.trim().is_empty() {

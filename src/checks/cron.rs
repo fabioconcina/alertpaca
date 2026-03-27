@@ -319,7 +319,7 @@ fn should_have_run(schedule: &CronSchedule, lookback_minutes: u64) -> bool {
 const DEFAULT_LOOKBACK_MINUTES: u64 = 1500;
 
 #[cfg(target_os = "linux")]
-pub fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
+pub(crate) fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
     let mut all_jobs = collect_user_crontab();
     all_jobs.extend(collect_system_crontabs());
 
@@ -382,7 +382,7 @@ pub fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
 }
 
 #[cfg(not(target_os = "linux"))]
-pub fn check_cron(_config: &Option<crate::config::CronConfig>) -> Vec<CheckResult> {
+pub(crate) fn check_cron(_config: &Option<crate::config::CronConfig>) -> Vec<CheckResult> {
     vec![]
 }
 

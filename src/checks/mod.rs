@@ -1,21 +1,37 @@
-pub mod backups;
-pub mod certificates;
+pub(crate) mod backups;
+pub(crate) mod certificates;
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
-pub mod cron;
-pub mod dns;
-pub mod endpoints;
-pub mod ntp;
-pub mod ports;
-pub mod services;
-pub mod system;
-pub mod updates;
+pub(crate) mod cron;
+pub(crate) mod dns;
+pub(crate) mod endpoints;
+pub(crate) mod ntp;
+pub(crate) mod ports;
+pub(crate) mod services;
+pub(crate) mod system;
+pub(crate) mod updates;
 
+use std::sync::Arc;
+
+use rustls::{ClientConfig, RootCertStore};
 use serde::Serialize;
 
 use crate::config::Config;
 
+/// Shared TLS client config using system root certificates.
+/// Used by certificate, endpoint, and notification checks.
+pub(crate) fn tls_client_config() -> Arc<ClientConfig> {
+    let mut root_store = RootCertStore::empty();
+    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+    Arc::new(
+        ClientConfig::builder()
+            .with_root_certificates(root_store)
+            .with_no_client_auth(),
+    )
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
-pub enum CheckStatus {
+pub(crate) enum CheckStatus {
     Ok,
     Warning,
     Critical,
@@ -23,7 +39,7 @@ pub enum CheckStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
-pub enum Section {
+pub(crate) enum Section {
     System,
     Services,
     Backups,
@@ -38,7 +54,7 @@ pub enum Section {
 }
 
 impl Section {
-    pub fn label(&self) -> &'static str {
+    pub(crate) fn label(&self) -> &'static str {
         match self {
             Section::System => "SYSTEM",
             Section::Services => "SERVICES",
@@ -55,15 +71,15 @@ impl Section {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct CheckResult {
-    pub section: Section,
-    pub name: String,
-    pub status: CheckStatus,
-    pub summary: String,
+pub(crate) struct CheckResult {
+    pub(crate) section: Section,
+    pub(crate) name: String,
+    pub(crate) status: CheckStatus,
+    pub(crate) summary: String,
     /// Minimum status level that triggers a push notification.
     /// Defaults to Warning (i.e. notify on Warning and Critical).
     #[serde(skip)]
-    pub notify_minimum: CheckStatus,
+    pub(crate) notify_minimum: CheckStatus,
 }
 
 impl Default for CheckResult {
@@ -78,7 +94,7 @@ impl Default for CheckResult {
     }
 }
 
-pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
+pub(crate) fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     let mut results = Vec::new();
 
     results.extend(system::check_system(config));

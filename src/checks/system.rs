@@ -7,7 +7,7 @@ use super::{CheckResult, CheckStatus, Section};
 use crate::config::Config;
 use crate::state::DiskHistory;
 
-pub fn check_system(_config: &Config) -> Vec<CheckResult> {
+pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     let mut results = Vec::new();
     let mut sys = System::new();
 
@@ -236,5 +236,42 @@ fn format_days(days: f64) -> String {
     } else {
         let years = (days / 365.0).round() as u64;
         format!("{}y", years)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_format_bytes() {
+        assert_eq!(format_bytes(2048), "2K");
+        assert_eq!(format_bytes(1024 * 1024), "1M");
+        assert_eq!(format_bytes(2 * 1024 * 1024 * 1024), "2.0G");
+        assert_eq!(format_bytes(3 * 1024 * 1024 * 1024 * 1024), "3.0T");
+    }
+
+    #[test]
+    fn test_format_uptime() {
+        assert_eq!(format_uptime(300), "5m");
+        assert_eq!(format_uptime(3661), "1h 1m");
+        assert_eq!(format_uptime(90061), "1d 1h");
+    }
+
+    #[test]
+    fn test_format_days() {
+        assert_eq!(format_days(0.5), "12h");
+        assert_eq!(format_days(3.0), "3d");
+        assert_eq!(format_days(60.0), "2mo");
+        assert_eq!(format_days(400.0), "1y");
+    }
+
+    #[test]
+    fn test_is_pseudo_fs() {
+        assert!(is_pseudo_fs("tmpfs", "/tmp"));
+        assert!(is_pseudo_fs("ext4", "/dev/shm"));
+        assert!(is_pseudo_fs("proc", "/proc"));
+        assert!(!is_pseudo_fs("ext4", "/"));
+        assert!(!is_pseudo_fs("ext4", "/home"));
     }
 }

@@ -5,7 +5,7 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 
 use crate::checks::{CheckStatus, Section};
-use crate::tui::App;
+use super::App;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

@@ -2,9 +2,9 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-fn data_dir() -> PathBuf {
+pub(crate) fn data_dir() -> PathBuf {
     dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("~/.local/share"))
         .join("alertpaca")
@@ -17,7 +17,7 @@ fn ensure_data_dir() -> Result<PathBuf> {
 }
 
 /// Atomic write: write to .tmp then rename.
-fn atomic_write(path: &PathBuf, contents: &str) -> Result<()> {
+fn atomic_write(path: &Path, contents: &str) -> Result<()> {
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, contents)?;
     fs::rename(&tmp, path)?;
@@ -27,13 +27,13 @@ fn atomic_write(path: &PathBuf, contents: &str) -> Result<()> {
 // --- Disk history ---
 
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct DiskHistory {
+pub(crate) struct DiskHistory {
     /// mount_point -> vec of (unix_timestamp, used_bytes)
-    pub disks: HashMap<String, Vec<(i64, u64)>>,
+    pub(crate) disks: HashMap<String, Vec<(i64, u64)>>,
 }
 
 impl DiskHistory {
-    pub fn load() -> Self {
+    pub(crate) fn load() -> Self {
         let path = data_dir().join("history.json");
         fs::read_to_string(&path)
             .ok()
@@ -41,7 +41,7 @@ impl DiskHistory {
             .unwrap_or_default()
     }
 
-    pub fn save(&self) -> Result<()> {
+    pub(crate) fn save(&self) -> Result<()> {
         let dir = ensure_data_dir()?;
         let path = dir.join("history.json");
         let json = serde_json::to_string_pretty(self)?;
@@ -49,7 +49,7 @@ impl DiskHistory {
     }
 
     /// Record a data point and prune old entries (keep last 168 = 1 week at hourly).
-    pub fn record(&mut self, mount: &str, timestamp: i64, used_bytes: u64) {
+    pub(crate) fn record(&mut self, mount: &str, timestamp: i64, used_bytes: u64) {
         let entries = self.disks.entry(mount.to_string()).or_default();
         entries.push((timestamp, used_bytes));
         // Keep last 168 entries
@@ -61,7 +61,7 @@ impl DiskHistory {
 
     /// Predict days until full using linear regression.
     /// Returns Some(days) if trending up, None otherwise.
-    pub fn predict_days_until_full(&self, mount: &str, total_bytes: u64) -> Option<f64> {
+    pub(crate) fn predict_days_until_full(&self, mount: &str, total_bytes: u64) -> Option<f64> {
         let entries = self.disks.get(mount)?;
         if entries.len() < 2 {
             return None;
@@ -96,29 +96,29 @@ impl DiskHistory {
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
-pub struct Listener {
-    pub addr: String,
-    pub port: u16,
-    pub process: String,
+pub(crate) struct Listener {
+    pub(crate) addr: String,
+    pub(crate) port: u16,
+    pub(crate) process: String,
 }
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 #[derive(Debug, Serialize, Deserialize, Default)]
-pub struct PortState {
-    pub listeners: Vec<Listener>,
-    pub timestamp: i64,
+pub(crate) struct PortState {
+    pub(crate) listeners: Vec<Listener>,
+    pub(crate) timestamp: i64,
 }
 
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
 impl PortState {
-    pub fn load() -> Option<Self> {
+    pub(crate) fn load() -> Option<Self> {
         let path = data_dir().join("ports.json");
         fs::read_to_string(&path)
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
     }
 
-    pub fn save(&self) -> Result<()> {
+    pub(crate) fn save(&self) -> Result<()> {
         let dir = ensure_data_dir()?;
         let path = dir.join("ports.json");
         let json = serde_json::to_string_pretty(self)?;

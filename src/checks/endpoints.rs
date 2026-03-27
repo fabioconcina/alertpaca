@@ -4,31 +4,22 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use rustls::pki_types::ServerName;
-use rustls::{ClientConfig, ClientConnection, RootCertStore, StreamOwned};
+use rustls::{ClientConfig, ClientConnection, StreamOwned};
 
-use super::{CheckResult, CheckStatus, Section};
+use super::{CheckResult, CheckStatus, Section, tls_client_config};
 use crate::config::EndpointConfig;
 
-pub fn check_endpoints(configs: &[EndpointConfig]) -> Vec<CheckResult> {
+pub(crate) fn check_endpoints(configs: &[EndpointConfig]) -> Vec<CheckResult> {
     if configs.is_empty() {
         return vec![];
     }
 
-    let tls_config = Arc::new(build_tls_config());
+    let tls_config = tls_client_config();
 
     configs
         .iter()
         .map(|c| check_one_endpoint(c, &tls_config))
         .collect()
-}
-
-fn build_tls_config() -> ClientConfig {
-    let mut root_store = RootCertStore::empty();
-    root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
-
-    ClientConfig::builder()
-        .with_root_certificates(root_store)
-        .with_no_client_auth()
 }
 
 struct ParsedUrl<'a> {

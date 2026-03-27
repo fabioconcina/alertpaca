@@ -3,7 +3,7 @@ use std::io::{self, Write};
 use crate::checks::{CheckResult, CheckStatus, Section};
 
 /// Write results as pretty-printed JSON to stdout.
-pub fn write_json(results: &[CheckResult]) -> io::Result<()> {
+pub(crate) fn write_json(results: &[CheckResult]) -> io::Result<()> {
     let json = serde_json::to_string_pretty(results)
         .map_err(io::Error::other)?;
     let mut out = io::stdout().lock();
@@ -11,7 +11,7 @@ pub fn write_json(results: &[CheckResult]) -> io::Result<()> {
 }
 
 /// Write results as a plain-text table to stdout.
-pub fn write_table(results: &[CheckResult]) -> io::Result<()> {
+pub(crate) fn write_table(results: &[CheckResult]) -> io::Result<()> {
     let mut out = io::stdout().lock();
     let mut current_section: Option<Section> = None;
 
@@ -38,7 +38,7 @@ pub fn write_table(results: &[CheckResult]) -> io::Result<()> {
 }
 
 /// Return the appropriate exit code for a set of results.
-pub fn exit_code(results: &[CheckResult]) -> i32 {
+pub(crate) fn exit_code(results: &[CheckResult]) -> i32 {
     let has_issue = results
         .iter()
         .any(|r| matches!(r.status, CheckStatus::Warning | CheckStatus::Critical));

@@ -3,42 +3,42 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Default, Clone)]
-pub struct Config {
+pub(crate) struct Config {
     #[serde(default)]
-    pub backup: Vec<BackupConfig>,
+    pub(crate) backup: Vec<BackupConfig>,
     #[serde(default)]
-    pub certificate: Vec<CertificateConfig>,
+    pub(crate) certificate: Vec<CertificateConfig>,
     #[serde(default)]
-    pub ntp: Option<NtpConfig>,
+    pub(crate) ntp: Option<NtpConfig>,
     #[serde(default)]
-    pub endpoint: Vec<EndpointConfig>,
+    pub(crate) endpoint: Vec<EndpointConfig>,
     #[serde(default)]
-    pub dns: Vec<DnsConfig>,
+    pub(crate) dns: Vec<DnsConfig>,
     #[serde(default)]
-    pub notify: Option<NotifyConfig>,
+    pub(crate) notify: Option<NotifyConfig>,
     #[serde(default)]
-    pub systemd: Option<SystemdConfig>,
+    pub(crate) systemd: Option<SystemdConfig>,
     #[serde(default)]
-    pub cron: Option<CronConfig>,
+    pub(crate) cron: Option<CronConfig>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
-pub struct CronConfig {
+pub(crate) struct CronConfig {
     /// Command patterns to ignore (substring match)
     #[serde(default)]
-    pub ignore: Vec<String>,
+    pub(crate) ignore: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct SystemdConfig {
+pub(crate) struct SystemdConfig {
     #[serde(default)]
-    pub ignore: Vec<String>,
+    pub(crate) ignore: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(tag = "type")]
-pub enum BackupConfig {
+pub(crate) enum BackupConfig {
     #[serde(rename = "file")]
     File {
         name: String,
@@ -63,7 +63,7 @@ pub enum BackupConfig {
 }
 
 impl BackupConfig {
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         match self {
             BackupConfig::File { name, .. } => name,
             BackupConfig::Restic { name, .. } => name,
@@ -71,7 +71,7 @@ impl BackupConfig {
         }
     }
 
-    pub fn max_age_str(&self) -> &str {
+    pub(crate) fn max_age_str(&self) -> &str {
         match self {
             BackupConfig::File { max_age, .. } => max_age,
             BackupConfig::Restic { max_age, .. } => max_age,
@@ -81,37 +81,37 @@ impl BackupConfig {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct CertificateConfig {
-    pub endpoint: String,
+pub(crate) struct CertificateConfig {
+    pub(crate) endpoint: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct NtpConfig {
+pub(crate) struct NtpConfig {
     #[serde(default = "default_ntp_server")]
-    pub server: String,
+    pub(crate) server: String,
     /// Warn threshold in milliseconds (default: 100)
-    pub warn_ms: Option<u64>,
+    pub(crate) warn_ms: Option<u64>,
     /// Critical threshold in milliseconds (default: 1000)
-    pub critical_ms: Option<u64>,
+    pub(crate) critical_ms: Option<u64>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct EndpointConfig {
-    pub name: String,
-    pub url: String,
-    pub expect_status: Option<u16>,
+pub(crate) struct EndpointConfig {
+    pub(crate) name: String,
+    pub(crate) url: String,
+    pub(crate) expect_status: Option<u16>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct DnsConfig {
-    pub name: String,
-    pub domain: String,
-    pub server: Option<String>,
+pub(crate) struct DnsConfig {
+    pub(crate) name: String,
+    pub(crate) domain: String,
+    pub(crate) server: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct NotifyConfig {
-    pub url: String,
+pub(crate) struct NotifyConfig {
+    pub(crate) url: String,
 }
 
 fn default_ntp_server() -> String {
@@ -125,7 +125,7 @@ fn config_path() -> PathBuf {
         .join("config.toml")
 }
 
-pub fn load_config(path: Option<&str>) -> Result<Config> {
+pub(crate) fn load_config(path: Option<&str>) -> Result<Config> {
     let path = match path {
         Some(p) => PathBuf::from(p),
         None => config_path(),
@@ -141,7 +141,7 @@ pub fn load_config(path: Option<&str>) -> Result<Config> {
 }
 
 /// Parse a duration string like "24h", "7d", "1w", "30m" into seconds.
-pub fn parse_duration_secs(s: &str) -> Result<i64> {
+pub(crate) fn parse_duration_secs(s: &str) -> Result<i64> {
     let s = s.trim();
     if s.is_empty() {
         anyhow::bail!("empty duration string");
