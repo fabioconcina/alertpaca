@@ -22,6 +22,7 @@ pub fn check_certificates(configs: &[CertificateConfig]) -> Vec<CheckResult> {
                 name: "tls".into(),
                 status: CheckStatus::Skipped,
                 summary: format!("TLS init failed: {}", e),
+                ..Default::default()
             }];
         }
     };
@@ -62,6 +63,7 @@ fn check_one_cert(config: &CertificateConfig, tls_config: &Arc<ClientConfig>) ->
                 name,
                 status,
                 summary: format!("expires in {}d", days),
+                ..Default::default()
             }
         }
         Err(e) => CheckResult {
@@ -69,6 +71,7 @@ fn check_one_cert(config: &CertificateConfig, tls_config: &Arc<ClientConfig>) ->
             name,
             status: CheckStatus::Skipped,
             summary: e,
+            ..Default::default()
         },
     }
 }

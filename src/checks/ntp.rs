@@ -39,6 +39,7 @@ pub fn check_ntp(config: &Option<NtpConfig>) -> Vec<CheckResult> {
                 name: "clock".into(),
                 status,
                 summary,
+                notify_minimum: CheckStatus::Critical,
             }]
         }
         Err(e) => vec![CheckResult {
@@ -46,6 +47,7 @@ pub fn check_ntp(config: &Option<NtpConfig>) -> Vec<CheckResult> {
             name: "clock".into(),
             status: CheckStatus::Skipped,
             summary: e,
+            notify_minimum: CheckStatus::Critical,
         }],
     }
 }

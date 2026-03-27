@@ -57,7 +57,7 @@ pub fn notify(config: &NotifyConfig, results: &[CheckResult]) {
                 continue; // no change
             }
 
-            if is_problem(result.status) {
+            if is_problem(result.status) && result.status >= result.notify_minimum {
                 let icon = if result.status == CheckStatus::Critical {
                     "🔴"
                 } else {
@@ -69,9 +69,16 @@ pub fn notify(config: &NotifyConfig, results: &[CheckResult]) {
                 ));
             } else if result.status == CheckStatus::Ok && (prev == "Warning" || prev == "Critical")
             {
-                messages.push(format!("🟢 {} — {} (recovered)", key, result.summary));
+                // Only send recovery if the previous status was above the notify threshold
+                let prev_status = match prev.as_str() {
+                    "Critical" => CheckStatus::Critical,
+                    _ => CheckStatus::Warning,
+                };
+                if prev_status >= result.notify_minimum {
+                    messages.push(format!("🟢 {} — {} (recovered)", key, result.summary));
+                }
             }
-        } else if is_problem(result.status) {
+        } else if is_problem(result.status) && result.status >= result.notify_minimum {
             // First run with a problem
             let icon = if result.status == CheckStatus::Critical {
                 "🔴"

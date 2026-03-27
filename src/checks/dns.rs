@@ -29,6 +29,7 @@ fn check_one_dns(config: &DnsConfig) -> CheckResult {
                 name,
                 status,
                 summary: format!("{} ({}ms via {})", resolved, ms, server),
+                ..Default::default()
             }
         }
         Err(e) => CheckResult {
@@ -36,6 +37,7 @@ fn check_one_dns(config: &DnsConfig) -> CheckResult {
             name,
             status: CheckStatus::Critical,
             summary: format!("{} via {}", e, server),
+            ..Default::default()
         },
     }
 }

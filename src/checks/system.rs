@@ -30,6 +30,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
         name: "cpu".into(),
         status: cpu_status,
         summary: format!("{:.0}% usage ({} cores)", cpu_usage, cpu_count),
+        ..Default::default()
     });
 
     // Memory
@@ -58,6 +59,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
             format_bytes(total_mem),
             mem_pct
         ),
+        ..Default::default()
     });
 
     // Swap
@@ -82,6 +84,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
                 format_bytes(total_swap),
                 swap_pct
             ),
+            ..Default::default()
         });
     }
 
@@ -104,6 +107,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
         name: "load".into(),
         status: load_status,
         summary: format!("{:.2} ({} cores)", load_1, cpu_count),
+        ..Default::default()
     });
 
     // Uptime
@@ -113,6 +117,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
         name: "uptime".into(),
         status: CheckStatus::Ok,
         summary: format_uptime(uptime_secs),
+        ..Default::default()
     });
 
     // Disks
@@ -161,6 +166,7 @@ pub fn check_system(_config: &Config) -> Vec<CheckResult> {
             name: format!("disk {}", mount),
             status: disk_status,
             summary,
+            ..Default::default()
         });
     }
 

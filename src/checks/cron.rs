@@ -359,6 +359,7 @@ pub fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
                 name: "cron".into(),
                 status: CheckStatus::Warning,
                 summary: format!("{} — no evidence of run ({})", label, job.source),
+                ..Default::default()
             });
         }
     }
@@ -373,6 +374,7 @@ pub fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
                 ok_count,
                 if ok_count == 1 { "" } else { "s" }
             ),
+            ..Default::default()
         });
     }
 

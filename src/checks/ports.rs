@@ -16,6 +16,7 @@ pub fn check_ports() -> Vec<CheckResult> {
             name: "listeners".into(),
             status: CheckStatus::Skipped,
             summary: "port tracking requires Linux".into(),
+            ..Default::default()
         }]
     }
 }
@@ -30,6 +31,7 @@ fn check_ports_linux() -> Vec<CheckResult> {
                 name: "listeners".into(),
                 status: CheckStatus::Skipped,
                 summary: format!("failed to read ports: {}", e),
+                ..Default::default()
             }];
         }
     };
@@ -51,6 +53,7 @@ fn check_ports_linux() -> Vec<CheckResult> {
                 name: "listeners".into(),
                 status: CheckStatus::Ok,
                 summary: format!("baseline recorded ({} listeners)", current.len()),
+                ..Default::default()
             }]
         }
         Some(prev) => diff_ports(&prev.listeners, &current),
@@ -81,6 +84,7 @@ fn diff_ports(previous: &[Listener], current: &[Listener]) -> Vec<CheckResult> {
             name: "listeners".into(),
             status: CheckStatus::Ok,
             summary: "no changes since last check".into(),
+            ..Default::default()
         });
         return results;
     }
@@ -91,6 +95,7 @@ fn diff_ports(previous: &[Listener], current: &[Listener]) -> Vec<CheckResult> {
             name: "listeners".into(),
             status: CheckStatus::Ok,
             summary: format!("new: {}:{}", addr, port),
+            ..Default::default()
         });
     }
 
@@ -100,6 +105,7 @@ fn diff_ports(previous: &[Listener], current: &[Listener]) -> Vec<CheckResult> {
             name: "listeners".into(),
             status: CheckStatus::Warning,
             summary: format!("missing: {}:{}", addr, port),
+            ..Default::default()
         });
     }
 

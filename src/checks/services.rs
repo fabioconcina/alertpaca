@@ -23,6 +23,7 @@ fn check_systemd(config: &Option<SystemdConfig>) -> Vec<CheckResult> {
                 name: "systemd".into(),
                 status: CheckStatus::Skipped,
                 summary: "systemctl not available".into(),
+                ..Default::default()
             }];
         }
     };
@@ -43,6 +44,7 @@ fn check_systemd(config: &Option<SystemdConfig>) -> Vec<CheckResult> {
             name: "systemd".into(),
             status: CheckStatus::Ok,
             summary: "all units ok".into(),
+            ..Default::default()
         }]
     } else {
         let names: Vec<String> = failed.iter().take(3).map(|s| s.to_string()).collect();
@@ -55,6 +57,7 @@ fn check_systemd(config: &Option<SystemdConfig>) -> Vec<CheckResult> {
             name: "systemd".into(),
             status: CheckStatus::Critical,
             summary,
+            ..Default::default()
         }]
     }
 }
@@ -79,6 +82,7 @@ fn check_docker() -> Vec<CheckResult> {
                     name: "docker".into(),
                     status: CheckStatus::Skipped,
                     summary: "cannot connect to Docker socket".into(),
+                    ..Default::default()
                 }];
             }
         };
@@ -90,6 +94,7 @@ fn check_docker() -> Vec<CheckResult> {
                 name: "docker".into(),
                 status: CheckStatus::Skipped,
                 summary: "failed to query Docker".into(),
+                ..Default::default()
             }];
         }
 
@@ -100,6 +105,7 @@ fn check_docker() -> Vec<CheckResult> {
                 name: "docker".into(),
                 status: CheckStatus::Skipped,
                 summary: "failed to read Docker response".into(),
+                ..Default::default()
             }];
         }
 
@@ -112,6 +118,7 @@ fn check_docker() -> Vec<CheckResult> {
                     name: "docker".into(),
                     status: CheckStatus::Skipped,
                     summary: "unexpected Docker response".into(),
+                    ..Default::default()
                 }];
             }
         };
@@ -124,6 +131,7 @@ fn check_docker() -> Vec<CheckResult> {
                     name: "docker".into(),
                     status: CheckStatus::Skipped,
                     summary: "failed to parse Docker response".into(),
+                    ..Default::default()
                 }];
             }
         };
@@ -159,6 +167,7 @@ fn parse_docker_containers(containers: &[serde_json::Value]) -> Vec<CheckResult>
                 name: "docker".into(),
                 status: CheckStatus::Warning,
                 summary: format!("{} restarting", names),
+                ..Default::default()
             });
         } else if status.contains("unhealthy") {
             problem_count += 1;
@@ -167,6 +176,7 @@ fn parse_docker_containers(containers: &[serde_json::Value]) -> Vec<CheckResult>
                 name: "docker".into(),
                 status: CheckStatus::Warning,
                 summary: format!("{} unhealthy", names),
+                ..Default::default()
             });
         } else if state == "running" {
             healthy_count += 1;
@@ -183,6 +193,7 @@ fn parse_docker_containers(containers: &[serde_json::Value]) -> Vec<CheckResult>
                 healthy_count,
                 if healthy_count == 1 { "" } else { "s" }
             ),
+            ..Default::default()
         });
     }
 
@@ -192,6 +203,7 @@ fn parse_docker_containers(containers: &[serde_json::Value]) -> Vec<CheckResult>
             name: "docker".into(),
             status: CheckStatus::Ok,
             summary: "no containers".into(),
+            ..Default::default()
         });
     }
 

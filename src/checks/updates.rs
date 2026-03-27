@@ -10,6 +10,7 @@ pub fn check_updates() -> Vec<CheckResult> {
                     name: "packages".into(),
                     status: CheckStatus::Ok,
                     summary: "system is up to date".into(),
+                    ..Default::default()
                 }]
             } else {
                 let auto_updates = is_unattended_upgrades_active();
@@ -34,6 +35,7 @@ pub fn check_updates() -> Vec<CheckResult> {
                     name: "packages".into(),
                     status,
                     summary,
+                    ..Default::default()
                 }]
             }
         }
@@ -42,6 +44,7 @@ pub fn check_updates() -> Vec<CheckResult> {
             name: "packages".into(),
             status: CheckStatus::Skipped,
             summary: e,
+            ..Default::default()
         }],
     }
 }
@@ -53,6 +56,7 @@ pub fn check_updates() -> Vec<CheckResult> {
         name: "packages".into(),
         status: CheckStatus::Skipped,
         summary: "apt not available (Linux only)".into(),
+        ..Default::default()
     }]
 }
 

@@ -18,6 +18,7 @@ fn check_one_backup(config: &BackupConfig) -> CheckResult {
                 name,
                 status: CheckStatus::Skipped,
                 summary: format!("invalid max_age: {}", e),
+                ..Default::default()
             };
         }
     };
@@ -53,6 +54,7 @@ fn check_one_backup(config: &BackupConfig) -> CheckResult {
                     format_age(age),
                     config.max_age_str()
                 ),
+                ..Default::default()
             }
         }
         Err(e) => CheckResult {
@@ -60,6 +62,7 @@ fn check_one_backup(config: &BackupConfig) -> CheckResult {
             name,
             status: CheckStatus::Skipped,
             summary: e.to_string(),
+            ..Default::default()
         },
     }
 }

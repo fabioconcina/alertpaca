@@ -82,6 +82,7 @@ fn check_one_endpoint(config: &EndpointConfig, tls_config: &Arc<ClientConfig>) -
                 name,
                 status: CheckStatus::Skipped,
                 summary: e,
+                ..Default::default()
             };
         }
     };
@@ -109,6 +110,7 @@ fn check_one_endpoint(config: &EndpointConfig, tls_config: &Arc<ClientConfig>) -
                 name,
                 status: check_status,
                 summary: format!("{} ({}ms)", status_code, elapsed_ms),
+                ..Default::default()
             }
         }
         Err(e) => CheckResult {
@@ -116,6 +118,7 @@ fn check_one_endpoint(config: &EndpointConfig, tls_config: &Arc<ClientConfig>) -
             name,
             status: CheckStatus::Critical,
             summary: e,
+            ..Default::default()
         },
     }
 }

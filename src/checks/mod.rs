@@ -14,7 +14,7 @@ use serde::Serialize;
 
 use crate::config::Config;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub enum CheckStatus {
     Ok,
     Warning,
@@ -60,6 +60,22 @@ pub struct CheckResult {
     pub name: String,
     pub status: CheckStatus,
     pub summary: String,
+    /// Minimum status level that triggers a push notification.
+    /// Defaults to Warning (i.e. notify on Warning and Critical).
+    #[serde(skip)]
+    pub notify_minimum: CheckStatus,
+}
+
+impl Default for CheckResult {
+    fn default() -> Self {
+        Self {
+            section: Section::System,
+            name: String::new(),
+            status: CheckStatus::Ok,
+            summary: String::new(),
+            notify_minimum: CheckStatus::Warning,
+        }
+    }
 }
 
 pub fn run_all_checks(config: &Config) -> Vec<CheckResult> {
