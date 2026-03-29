@@ -1,7 +1,7 @@
 use std::thread;
 use std::time::Duration;
 
-use sysinfo::{Disks, System};
+use sysinfo::{Components, Disks, System};
 
 use super::{CheckResult, CheckStatus, Section};
 use crate::config::Config;
@@ -120,6 +120,47 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
         ..Default::default()
     });
 
+    // Temperature sensors
+    let components = Components::new_with_refreshed_list();
+    for component in &components {
+        let label = component.label().to_lowercase();
+        // Only report CPU package/core temps (skip duplicates like individual cores)
+        let name = if label.contains("package") || label.contains("tctl") || label.contains("tdie")
+        {
+            "cpu temp".to_string()
+        } else if label.contains("core") || label.contains("cpu") {
+            continue; // skip per-core — package covers overall CPU temp
+        } else if label.contains("composite") || label.contains("nvme") {
+            "disk temp".to_string()
+        } else {
+            continue; // skip unrecognized sensors
+        };
+
+        let Some(temp) = component.temperature() else {
+            continue;
+        };
+        let critical = component
+            .critical()
+            .unwrap_or(if name.starts_with("cpu") { 95.0 } else { 70.0 });
+        let warn = critical - 15.0;
+
+        let status = if temp >= critical {
+            CheckStatus::Critical
+        } else if temp >= warn {
+            CheckStatus::Warning
+        } else {
+            CheckStatus::Ok
+        };
+
+        results.push(CheckResult {
+            section: Section::System,
+            name,
+            status,
+            summary: format!("{:.0}°C", temp),
+            ..Default::default()
+        });
+    }
+
     // Disks
     let now = chrono::Utc::now().timestamp();
     let mut history = DiskHistory::load();
@@ -128,9 +169,9 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     for disk in disks.list() {
         let mount = disk.mount_point().to_string_lossy().to_string();
 
-        // Skip pseudo-filesystems
+        // Skip pseudo-filesystems and boot partitions
         let fs_type = disk.file_system().to_string_lossy().to_string();
-        if is_pseudo_fs(&fs_type, &mount) {
+        if is_pseudo_fs(&fs_type, &mount) || is_boot_partition(&mount) {
             continue;
         }
 
@@ -191,6 +232,10 @@ fn is_pseudo_fs(fs_type: &str, mount: &str) -> bool {
         return true;
     }
     false
+}
+
+fn is_boot_partition(mount: &str) -> bool {
+    mount == "/boot" || mount.starts_with("/boot/")
 }
 
 fn format_bytes(bytes: u64) -> String {

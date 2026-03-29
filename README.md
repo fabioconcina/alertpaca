@@ -164,6 +164,7 @@ Exit codes apply to `--json` and `--once` modes:
 | Disk usage | ✓ | warn >80%, critical >90% |
 | Disk fill prediction | ✓ | estimates days until full |
 | System load | ✓ | warn > cores, critical > 2x cores |
+| Temperature | ✓ | warn 15°C below critical, critical at hardware limit (default 95°C CPU / 70°C disk) |
 | Uptime | ✓ | informational |
 | Systemd failed units | ✓ | critical if any failed (configurable ignore list) |
 | Docker containers | ✓ | warn if unhealthy/restarting |

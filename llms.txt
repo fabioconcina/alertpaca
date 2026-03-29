@@ -124,6 +124,7 @@ Single run, plain-text table to stdout.
 - Memory usage: warn >80%, critical >95%
 - Swap usage: warn >50%, critical >90% (hidden if no swap)
 - Disk usage: warn >80%, critical >90%, with fill-rate prediction
+- Temperature: auto-detects CPU package and NVMe/disk composite temps, critical at hardware-reported limit (default 95°C CPU / 70°C disk), warn 15°C below critical
 - System load: warn > cores, critical > 2x cores
 - Uptime: informational
 - Systemd failed units: critical if any failed, configurable ignore list (Linux only)
