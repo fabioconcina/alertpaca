@@ -175,13 +175,21 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
             continue;
         }
 
-        let total = disk.total_space();
-        let available = disk.available_space();
+        // Use statvfs directly: sysinfo's available_space() maps to f_bavail
+        // (excludes root-reserved blocks), so total - available counts the
+        // reserve as used. df reports used = (f_blocks - f_bfree) * f_frsize.
+        let Some((total, used, available)) = statvfs_disk_usage(&mount) else {
+            continue;
+        };
         if total == 0 {
             continue;
         }
-        let used = total.saturating_sub(available);
-        let pct = (used as f64 / total as f64) * 100.0;
+        let usable = used + available;
+        let pct = if usable > 0 {
+            (used as f64 / usable as f64) * 100.0
+        } else {
+            0.0
+        };
 
         let disk_status = if pct > 90.0 {
             CheckStatus::Critical
@@ -215,6 +223,32 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     let _ = history.save();
 
     results
+}
+
+/// (total, used, available) in bytes from POSIX statvfs.
+/// Uses f_bfree (true free) for `used` so root-reserved blocks aren't counted as used,
+/// and f_bavail for `available` so the percentage reflects what users can actually fill.
+// Casts are needed for portability: statvfs fields are c_ulong (u32 on 32-bit, u64 on 64-bit).
+#[allow(clippy::unnecessary_cast)]
+fn statvfs_disk_usage(mount: &str) -> Option<(u64, u64, u64)> {
+    use std::ffi::CString;
+    use std::mem::MaybeUninit;
+    let path = CString::new(mount).ok()?;
+    let mut s = MaybeUninit::<libc::statvfs>::uninit();
+    let r = unsafe { libc::statvfs(path.as_ptr(), s.as_mut_ptr()) };
+    if r != 0 {
+        return None;
+    }
+    let s = unsafe { s.assume_init() };
+    let frsize = s.f_frsize as u64;
+    let blocks = s.f_blocks as u64;
+    let bfree = s.f_bfree as u64;
+    let bavail = s.f_bavail as u64;
+    Some((
+        blocks * frsize,
+        blocks.saturating_sub(bfree) * frsize,
+        bavail * frsize,
+    ))
 }
 
 fn is_pseudo_fs(fs_type: &str, mount: &str) -> bool {

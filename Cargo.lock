@@ -4,7 +4,7 @@ version = 4
 
 [[package]]
 name = "alertpaca"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -12,6 +12,7 @@ dependencies = [
  "crossterm",
  "dirs",
  "glob",
+ "libc",
  "ratatui",
  "rustls",
  "serde",
