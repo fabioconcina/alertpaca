@@ -7,6 +7,7 @@ pub(crate) mod endpoints;
 pub(crate) mod ntp;
 pub(crate) mod ports;
 pub(crate) mod services;
+pub(crate) mod syncthing;
 pub(crate) mod system;
 pub(crate) mod updates;
 
@@ -47,6 +48,7 @@ pub(crate) enum Section {
     Ports,
     Ntp,
     Endpoints,
+    Syncthing,
     Dns,
     Updates,
     #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
@@ -63,6 +65,7 @@ impl Section {
             Section::Ports => "PORTS",
             Section::Ntp => "NTP",
             Section::Endpoints => "ENDPOINTS",
+            Section::Syncthing => "SYNCTHING",
             Section::Dns => "DNS",
             Section::Updates => "UPDATES",
             Section::Cron => "CRON",
@@ -104,6 +107,7 @@ pub(crate) fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     results.extend(ports::check_ports());
     results.extend(ntp::check_ntp(&config.ntp));
     results.extend(endpoints::check_endpoints(&config.endpoint));
+    results.extend(syncthing::check_syncthing(&config.syncthing));
     results.extend(dns::check_dns(&config.dns));
     results.extend(updates::check_updates());
     results.extend(cron::check_cron(&config.cron));

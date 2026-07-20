@@ -13,6 +13,8 @@ pub(crate) struct Config {
     #[serde(default)]
     pub(crate) endpoint: Vec<EndpointConfig>,
     #[serde(default)]
+    pub(crate) syncthing: Vec<SyncthingConfig>,
+    #[serde(default)]
     pub(crate) dns: Vec<DnsConfig>,
     #[serde(default)]
     pub(crate) notify: Option<NotifyConfig>,
@@ -100,6 +102,15 @@ pub(crate) struct EndpointConfig {
     pub(crate) name: String,
     pub(crate) url: String,
     pub(crate) expect_status: Option<u16>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct SyncthingConfig {
+    pub(crate) name: String,
+    /// Base URL of the Syncthing GUI/REST API, e.g. "http://localhost:8384".
+    pub(crate) url: String,
+    /// REST API key (Syncthing config.xml <apikey>).
+    pub(crate) api_key: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
