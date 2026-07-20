@@ -72,6 +72,12 @@ fn check_one(config: &SyncthingConfig, tls_config: &Arc<ClientConfig>) -> Vec<Ch
 }
 
 fn check_peers(name: String, connections: &Value) -> CheckResult {
+    // A peer here is typically a laptop/phone that legitimately sleeps and
+    // roams networks, so a disconnected peer flaps constantly and is not
+    // actionable. Only page on Critical (API unreachable, i.e. Syncthing
+    // itself is down) - never on a peer simply being offline.
+    let notify_minimum = CheckStatus::Critical;
+
     let conns = connections.get("connections").and_then(|c| c.as_object());
     let Some(conns) = conns else {
         return CheckResult {
@@ -79,7 +85,7 @@ fn check_peers(name: String, connections: &Value) -> CheckResult {
             name,
             status: CheckStatus::Warning,
             summary: "unexpected connections response".into(),
-            ..Default::default()
+            notify_minimum,
         };
     };
 
@@ -96,7 +102,7 @@ fn check_peers(name: String, connections: &Value) -> CheckResult {
             name,
             status: CheckStatus::Warning,
             summary: "no peer devices configured".into(),
-            ..Default::default()
+            notify_minimum,
         };
     }
 
@@ -106,7 +112,7 @@ fn check_peers(name: String, connections: &Value) -> CheckResult {
             name,
             status: CheckStatus::Ok,
             summary: format!("{}/{} connected", total, total),
-            ..Default::default()
+            notify_minimum,
         }
     } else {
         CheckResult {
@@ -119,7 +125,7 @@ fn check_peers(name: String, connections: &Value) -> CheckResult {
                 total,
                 disconnected.join(", ")
             ),
-            ..Default::default()
+            notify_minimum,
         }
     }
 }
@@ -418,6 +424,8 @@ mod tests {
         let r = check_peers("t".into(), &v);
         assert_eq!(r.status, CheckStatus::Warning);
         assert!(r.summary.contains("CCC"));
+        // A disconnected peer (laptop asleep) must never page.
+        assert_eq!(r.notify_minimum, CheckStatus::Critical);
     }
 
     #[test]
