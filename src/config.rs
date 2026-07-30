@@ -22,6 +22,29 @@ pub(crate) struct Config {
     pub(crate) systemd: Option<SystemdConfig>,
     #[serde(default)]
     pub(crate) cron: Option<CronConfig>,
+    #[serde(default)]
+    pub(crate) images: Option<ImagesConfig>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub(crate) struct ImagesConfig {
+    #[serde(default = "default_true")]
+    pub(crate) enabled: bool,
+    /// How often to query registries per image (default: "6h").
+    /// Between refreshes the cached verdict is reused.
+    #[serde(default = "default_images_interval")]
+    pub(crate) check_interval: String,
+    /// Image references to ignore (substring match)
+    #[serde(default)]
+    pub(crate) ignore: Vec<String>,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn default_images_interval() -> String {
+    "6h".into()
 }
 
 #[derive(Debug, Deserialize, Clone)]

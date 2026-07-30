@@ -4,6 +4,7 @@ pub(crate) mod certificates;
 pub(crate) mod cron;
 pub(crate) mod dns;
 pub(crate) mod endpoints;
+pub(crate) mod images;
 pub(crate) mod ntp;
 pub(crate) mod ports;
 pub(crate) mod services;
@@ -110,6 +111,7 @@ pub(crate) fn run_all_checks(config: &Config) -> Vec<CheckResult> {
     results.extend(syncthing::check_syncthing(&config.syncthing));
     results.extend(dns::check_dns(&config.dns));
     results.extend(updates::check_updates());
+    results.extend(images::check_images(&config.images));
     results.extend(cron::check_cron(&config.cron));
 
     results

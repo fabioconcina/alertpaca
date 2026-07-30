@@ -126,6 +126,39 @@ impl PortState {
     }
 }
 
+// --- Docker image digest cache ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct ImageCacheEntry {
+    /// Digest the registry served for this tag at the last query,
+    /// None if every query so far has failed.
+    pub(crate) remote_digest: Option<String>,
+    pub(crate) checked_at: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub(crate) struct ImageCache {
+    /// image reference (as reported by docker ps) -> cache entry
+    pub(crate) images: HashMap<String, ImageCacheEntry>,
+}
+
+impl ImageCache {
+    pub(crate) fn load() -> Self {
+        let path = data_dir().join("images.json");
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default()
+    }
+
+    pub(crate) fn save(&self) -> Result<()> {
+        let dir = ensure_data_dir()?;
+        let path = dir.join("images.json");
+        let json = serde_json::to_string_pretty(self)?;
+        atomic_write(&path, &json)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

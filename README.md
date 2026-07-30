@@ -175,6 +175,7 @@ Exit codes apply to `--json` and `--once` modes:
 | HTTP endpoints | config | critical if unreachable/5xx, warn if 4xx |
 | DNS resolution | config | critical if resolution fails, warn if >1s |
 | Pending updates | ✓ | shows upgradable packages, warns on security updates |
+| Docker image updates | ✓ | warns when a registry serves a newer digest for a running image's tag; skips digest-pinned and locally built images |
 | Cron jobs | ✓ | parses crontab, warns if scheduled jobs show no evidence of running |
 
 ## Configuration
@@ -239,6 +240,12 @@ server = "pool.ntp.org"
 # Optional — ignore specific cron commands (substring match)
 [cron]
 ignore = ["run-parts"]
+
+# Optional — Docker image update check
+[images]
+# enabled = true
+# check_interval = "6h"   # how often to query registries per image
+# ignore = ["frigate"]    # image references to skip (substring match)
 ```
 
 ## Notifications
@@ -254,6 +261,7 @@ Stored in `~/.local/share/alertpaca/`:
 - `history.json` — disk usage history for fill prediction
 - `ports.json` — last known listening ports for drift detection
 - `last_status.json` — previous check statuses for notification diffing
+- `images.json` — cached registry digests for the Docker image update check
 
 ## License
 
