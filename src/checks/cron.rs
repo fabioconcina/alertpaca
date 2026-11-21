@@ -289,14 +289,13 @@ fn check_journal(hint: &str, lookback_minutes: u64) -> bool {
             "cat",
         ])
         .output()
+        && output.status.success()
     {
-        if output.status.success() {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            // Cron logs typically contain CMD (command) entries
-            // Match on a meaningful substring of the command
-            let search = hint.split_whitespace().next().unwrap_or(hint);
-            return stdout.lines().any(|line| line.contains(search));
-        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        // Cron logs typically contain CMD (command) entries
+        // Match on a meaningful substring of the command
+        let search = hint.split_whitespace().next().unwrap_or(hint);
+        return stdout.lines().any(|line| line.contains(search));
     }
 
     // Fallback: check /var/log/syslog
