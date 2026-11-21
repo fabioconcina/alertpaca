@@ -182,7 +182,9 @@ pub(crate) fn parse_duration_secs(s: &str) -> Result<i64> {
     }
 
     let (num_str, suffix) = s.split_at(s.len() - 1);
-    let num: i64 = num_str.parse().map_err(|_| anyhow::anyhow!("invalid duration: {}", s))?;
+    let num: i64 = num_str
+        .parse()
+        .map_err(|_| anyhow::anyhow!("invalid duration: {}", s))?;
 
     let multiplier = match suffix {
         "m" => 60,

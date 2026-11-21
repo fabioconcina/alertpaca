@@ -1,6 +1,6 @@
 use std::io::{self, BufRead, Write};
 
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::checks;
 use crate::config::Config;
@@ -25,7 +25,10 @@ fn run_with_io(input: impl BufRead, mut output: impl Write, config: &Config) -> 
         let req: Value = match serde_json::from_str(&line) {
             Ok(v) => v,
             Err(_) => {
-                write_response(&mut output, json_rpc_error(Value::Null, -32700, "Parse error"))?;
+                write_response(
+                    &mut output,
+                    json_rpc_error(Value::Null, -32700, "Parse error"),
+                )?;
                 continue;
             }
         };
@@ -49,8 +52,7 @@ fn run_with_io(input: impl BufRead, mut output: impl Write, config: &Config) -> 
 }
 
 fn write_response(out: &mut impl Write, response: Value) -> io::Result<()> {
-    let s = serde_json::to_string(&response)
-        .map_err(io::Error::other)?;
+    let s = serde_json::to_string(&response).map_err(io::Error::other)?;
     writeln!(out, "{s}")?;
     out.flush()
 }

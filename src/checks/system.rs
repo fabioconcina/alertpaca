@@ -9,9 +9,15 @@ use crate::state::DiskHistory;
 
 pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     let mut results = Vec::new();
-    let mut sys = System::new();
+    let mut sys = match System::new() {
+        Ok(sys) => sys,
+        Err(e) => {
+            results.push(skipped("system", &e));
+            return results;
+        }
+    };
 
-    // CPU — need two refreshes with a delay for accurate measurement
+    // CPU: needs two refreshes with a delay for accurate measurement
     sys.refresh_cpu_usage();
     thread::sleep(Duration::from_millis(200));
     sys.refresh_cpu_usage();
@@ -89,40 +95,46 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     }
 
     // Load average
-    let load = System::load_average();
-    let load_1 = load.one;
-    let load_status = if cpu_count > 0 {
-        if load_1 > (cpu_count * 2) as f64 {
-            CheckStatus::Critical
-        } else if load_1 > cpu_count as f64 {
-            CheckStatus::Warning
-        } else {
-            CheckStatus::Ok
+    match System::load_average() {
+        Ok(load) => {
+            let load_1 = load.one;
+            let load_status = if cpu_count > 0 {
+                if load_1 > (cpu_count * 2) as f64 {
+                    CheckStatus::Critical
+                } else if load_1 > cpu_count as f64 {
+                    CheckStatus::Warning
+                } else {
+                    CheckStatus::Ok
+                }
+            } else {
+                CheckStatus::Ok
+            };
+            results.push(CheckResult {
+                section: Section::System,
+                name: "load".into(),
+                status: load_status,
+                summary: format!("{:.2} ({} cores)", load_1, cpu_count),
+                ..Default::default()
+            });
         }
-    } else {
-        CheckStatus::Ok
-    };
-    results.push(CheckResult {
-        section: Section::System,
-        name: "load".into(),
-        status: load_status,
-        summary: format!("{:.2} ({} cores)", load_1, cpu_count),
-        ..Default::default()
-    });
+        Err(e) => results.push(skipped("load", &e)),
+    }
 
     // Uptime
-    let uptime_secs = System::uptime();
-    results.push(CheckResult {
-        section: Section::System,
-        name: "uptime".into(),
-        status: CheckStatus::Ok,
-        summary: format_uptime(uptime_secs),
-        ..Default::default()
-    });
+    match System::uptime() {
+        Ok(uptime_secs) => results.push(CheckResult {
+            section: Section::System,
+            name: "uptime".into(),
+            status: CheckStatus::Ok,
+            summary: format_uptime(uptime_secs),
+            ..Default::default()
+        }),
+        Err(e) => results.push(skipped("uptime", &e)),
+    }
 
-    // Temperature sensors
-    let components = Components::new_with_refreshed_list();
-    for component in &components {
+    // Temperature sensors (absent on many machines, so a failure here is silent)
+    let components = Components::new_with_refreshed_list().ok();
+    for component in components.iter().flatten() {
         let label = component.label().to_lowercase();
         // Only report CPU package/core temps (skip duplicates like individual cores)
         let name = if label.contains("package") || label.contains("tctl") || label.contains("tdie")
@@ -139,9 +151,10 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
         let Some(temp) = component.temperature() else {
             continue;
         };
-        let critical = component
-            .critical()
-            .unwrap_or(if name.starts_with("cpu") { 95.0 } else { 70.0 });
+        let critical =
+            component
+                .critical()
+                .unwrap_or(if name.starts_with("cpu") { 95.0 } else { 70.0 });
         let warn = critical - 15.0;
 
         let status = if temp >= critical {
@@ -164,9 +177,15 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     // Disks
     let now = chrono::Utc::now().timestamp();
     let mut history = DiskHistory::load();
-    let disks = Disks::new_with_refreshed_list();
+    let disks = match Disks::new_with_refreshed_list() {
+        Ok(disks) => disks,
+        Err(e) => {
+            results.push(skipped("disks", &e));
+            return results;
+        }
+    };
 
-    for disk in disks.list() {
+    for disk in &disks {
         let mount = disk.mount_point().to_string_lossy().to_string();
 
         // Skip pseudo-filesystems and boot partitions
@@ -203,11 +222,16 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
         history.record(&mount, now, used);
         let prediction = history.predict_days_until_full(&mount, total);
 
-        let mut summary = format!("{:.0}% used ({} / {})", pct, format_bytes(used), format_bytes(total));
+        let mut summary = format!(
+            "{:.0}% used ({} / {})",
+            pct,
+            format_bytes(used),
+            format_bytes(total)
+        );
         if let Some(days) = prediction
             && days < 365.0
         {
-            summary.push_str(&format!(" — ~{} until full", format_days(days)));
+            summary.push_str(&format!(", ~{} until full", format_days(days)));
         }
 
         results.push(CheckResult {
@@ -223,6 +247,16 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     let _ = history.save();
 
     results
+}
+
+fn skipped(name: &str, err: &sysinfo::Error) -> CheckResult {
+    CheckResult {
+        section: Section::System,
+        name: name.into(),
+        status: CheckStatus::Skipped,
+        summary: format!("unavailable: {}", err),
+        ..Default::default()
+    }
 }
 
 /// (total, used, available) in bytes from POSIX statvfs.
@@ -253,19 +287,35 @@ fn statvfs_disk_usage(mount: &str) -> Option<(u64, u64, u64)> {
 
 fn is_pseudo_fs(fs_type: &str, mount: &str) -> bool {
     let pseudo_types = [
-        "tmpfs", "devtmpfs", "sysfs", "proc", "devpts", "cgroup", "cgroup2",
-        "pstore", "debugfs", "securityfs", "configfs", "fusectl", "mqueue",
-        "hugetlbfs", "binfmt_misc", "autofs", "efivarfs", "tracefs",
-        "bpf", "nsfs", "overlay",
+        "tmpfs",
+        "devtmpfs",
+        "sysfs",
+        "proc",
+        "devpts",
+        "cgroup",
+        "cgroup2",
+        "pstore",
+        "debugfs",
+        "securityfs",
+        "configfs",
+        "fusectl",
+        "mqueue",
+        "hugetlbfs",
+        "binfmt_misc",
+        "autofs",
+        "efivarfs",
+        "tracefs",
+        "bpf",
+        "nsfs",
+        "overlay",
     ];
     if pseudo_types.contains(&fs_type) {
         return true;
     }
     let pseudo_mounts = ["/dev", "/sys", "/proc", "/run"];
-    if pseudo_mounts.iter().any(|&m| mount.starts_with(m) && mount != "/run/media") {
-        return true;
-    }
-    false
+    pseudo_mounts
+        .iter()
+        .any(|&m| mount.starts_with(m) && mount != "/run/media")
 }
 
 fn is_boot_partition(mount: &str) -> bool {

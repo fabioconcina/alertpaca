@@ -10,44 +10,23 @@ build-release:
     cargo build --release
 
 check:
-    cargo clippy -- -D warnings
+    cargo fmt --check
+    cargo clippy --all-targets -- -D warnings
     cargo test
 
 clean:
     cargo clean
 
-# Tag the version in Cargo.toml and publish a GitHub release
-# with linux-amd64 and linux-arm64 binaries. Requires zig + cargo-zigbuild.
-# Opens $EDITOR for release notes.
+# Linux amd64 build for deploying to the home server (needs zig +
+# cargo-zigbuild). Same glibc floor as the release binaries.
+# Output: target/x86_64-unknown-linux-gnu/release/alertpaca
+cross:
+    cargo zigbuild --release --target x86_64-unknown-linux-gnu.2.17
+
+# Releases are built and published by CI, never locally.
 release:
-    #!/usr/bin/env bash
-    set -euo pipefail
-
-    if [ -n "$(git status --porcelain)" ]; then
-        echo "working tree dirty, commit first" >&2
-        exit 1
-    fi
-
-    VERSION=$(grep '^version' Cargo.toml | head -1 | cut -d'"' -f2)
-    TAG="v${VERSION}"
-
-    if git rev-parse "$TAG" >/dev/null 2>&1; then
-        echo "tag $TAG already exists" >&2
-        exit 1
-    fi
-
-    echo "Releasing $TAG"
-    cargo zigbuild --release --target x86_64-unknown-linux-gnu
-    cargo zigbuild --release --target aarch64-unknown-linux-gnu
-
-    STAGE=$(mktemp -d)
-    trap 'rm -rf "$STAGE"' EXIT
-    cp target/x86_64-unknown-linux-gnu/release/alertpaca "$STAGE/alertpaca-linux-amd64"
-    cp target/aarch64-unknown-linux-gnu/release/alertpaca "$STAGE/alertpaca-linux-arm64"
-
-    git tag "$TAG"
-    git push --tags
-
-    gh release create "$TAG" --title "$TAG" \
-        "$STAGE/alertpaca-linux-amd64" \
-        "$STAGE/alertpaca-linux-arm64"
+    @echo "Releases are published by .github/workflows/release.yml:"
+    @echo "  1. bump version in Cargo.toml (cargo build to refresh Cargo.lock)"
+    @echo "  2. write RELEASE_NOTES.md"
+    @echo "  3. commit and push to master"
+    @echo "  4. git tag vX.Y.Z && git push origin vX.Y.Z"

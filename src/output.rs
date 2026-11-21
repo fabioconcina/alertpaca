@@ -4,8 +4,7 @@ use crate::checks::{CheckResult, CheckStatus, Section};
 
 /// Write results as pretty-printed JSON to stdout.
 pub(crate) fn write_json(results: &[CheckResult]) -> io::Result<()> {
-    let json = serde_json::to_string_pretty(results)
-        .map_err(io::Error::other)?;
+    let json = serde_json::to_string_pretty(results).map_err(io::Error::other)?;
     let mut out = io::stdout().lock();
     writeln!(out, "{json}")
 }

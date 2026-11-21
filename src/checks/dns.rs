@@ -135,7 +135,13 @@ fn parse_response(buf: &[u8], n: usize) -> Result<String, String> {
         pos += 10;
 
         if rtype == 1 && rdlength == 4 && pos + 4 <= n {
-            return Ok(format!("{}.{}.{}.{}", buf[pos], buf[pos + 1], buf[pos + 2], buf[pos + 3]));
+            return Ok(format!(
+                "{}.{}.{}.{}",
+                buf[pos],
+                buf[pos + 1],
+                buf[pos + 2],
+                buf[pos + 3]
+            ));
         }
 
         pos += rdlength;
@@ -163,9 +169,7 @@ fn resolve(domain: &str, server: &str) -> Result<(String, Duration), String> {
     let query = build_query(domain);
     let start = Instant::now();
 
-    socket
-        .send(&query)
-        .map_err(|e| format!("send: {}", e))?;
+    socket.send(&query).map_err(|e| format!("send: {}", e))?;
 
     let mut buf = [0u8; 512];
     let n = socket.recv(&mut buf).map_err(|e| format!("recv: {}", e))?;

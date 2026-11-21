@@ -4,18 +4,19 @@
 
 # alertpaca
 
-[![Rust](https://img.shields.io/badge/rust-stable-orange)](https://www.rust-lang.org/)
+[![CI](https://github.com/fabioconcina/alertpaca/actions/workflows/ci.yml/badge.svg)](https://github.com/fabioconcina/alertpaca/actions/workflows/ci.yml)
+[![Rust](https://img.shields.io/badge/rust-1.95%2B-orange)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Built with ratatui](https://img.shields.io/badge/tui-ratatui-purple)](https://ratatui.rs/)
 [![GitHub release](https://img.shields.io/github/v/release/fabioconcina/alertpaca)](https://github.com/fabioconcina/alertpaca/releases/latest)
 
-**Server health checker** — run it, see what needs attention.
+**Server health checker**: run it, see what needs attention.
 
 Single binary, zero config, one screen.
 
 ## Why alertpaca?
 
-alertpaca doesn't show you what's happening — it tells you what's about to go wrong.
+alertpaca doesn't show you what's happening. It tells you what's about to go wrong.
 
 It predicts when disks will fill up, checks if backups actually ran, notices when services silently disappear, and warns before TLS certificates expire. One screen, no graphs, no config required.
 
@@ -27,9 +28,9 @@ It predicts when disks will fill up, checks if backups actually ran, notices whe
 
 alertpaca is built for AI agents and scripts, not just humans.
 
-- **MCP server** — `alertpaca --mcp` exposes a `check_health` tool via [Model Context Protocol](https://modelcontextprotocol.io). Connect it to Claude Desktop, Claude Code, or any MCP client.
-- **JSON output** — `alertpaca --json` returns structured results. Pipe to `jq`, feed to an LLM, or parse in scripts.
-- **Exit codes** — `0` = healthy, `2` = something needs attention. Use in CI, cron, or agent workflows.
+- **MCP server**: `alertpaca --mcp` exposes a `check_health` tool via [Model Context Protocol](https://modelcontextprotocol.io). Connect it to Claude Desktop, Claude Code, or any MCP client.
+- **JSON output**: `alertpaca --json` returns structured results. Pipe to `jq`, feed to an LLM, or parse in scripts.
+- **Exit codes**: `0` = healthy, `2` = something needs attention. Use in CI, cron, or agent workflows.
 
 ```sh
 # Ask an LLM to summarize server health
@@ -54,13 +55,21 @@ curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/dow
 chmod +x alertpaca
 ./alertpaca
 
-# macOS (Apple Silicon)
-curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-darwin-arm64
+# Linux (ARM64)
+curl -Lo alertpaca https://github.com/fabioconcina/alertpaca/releases/latest/download/alertpaca-linux-arm64
 chmod +x alertpaca
 ./alertpaca
 ```
 
-Or build from source:
+The binaries need glibc 2.17 or newer. Each release also ships SHA-256
+checksums, per-binary SPDX SBOMs and GitHub build-provenance attestations.
+To verify a download:
+
+```bash
+gh attestation verify ./alertpaca --repo fabioconcina/alertpaca
+```
+
+On macOS, or to build from source (Rust 1.95+):
 
 ```bash
 cargo build --release
@@ -223,25 +232,25 @@ name = "Pi-hole"
 domain = "google.com"
 server = "127.0.0.1"       # optional, defaults to 127.0.0.1
 
-# Notifications — alert on status changes (ntfy.sh, Slack, Discord, etc.)
+# Notifications: alert on status changes (ntfy.sh, Slack, Discord, etc.)
 [notify]
 url = "https://ntfy.sh/your-topic-here"
 
-# Optional — ignore noisy systemd units
+# Optional: ignore noisy systemd units
 [systemd]
 ignore = ["systemd-networkd-wait-online.service"]
 
-# Optional — defaults to pool.ntp.org, 500ms warn, 1000ms critical
+# Optional, defaults to pool.ntp.org, 500ms warn, 1000ms critical
 [ntp]
 server = "pool.ntp.org"
 # warn_ms = 500
 # critical_ms = 1000
 
-# Optional — ignore specific cron commands (substring match)
+# Optional: ignore specific cron commands (substring match)
 [cron]
 ignore = ["run-parts"]
 
-# Optional — Docker image update check
+# Optional: Docker image update check
 [images]
 # enabled = true
 # check_interval = "6h"   # how often to query registries per image
@@ -258,10 +267,10 @@ Works with [ntfy.sh](https://ntfy.sh), Slack incoming webhooks, Discord webhooks
 
 Stored in `~/.local/share/alertpaca/`:
 
-- `history.json` — disk usage history for fill prediction
-- `ports.json` — last known listening ports for drift detection
-- `last_status.json` — previous check statuses for notification diffing
-- `images.json` — cached registry digests for the Docker image update check
+- `history.json`: disk usage history for fill prediction
+- `ports.json`: last known listening ports for drift detection
+- `last_status.json`: previous check statuses for notification diffing
+- `images.json`: cached registry digests for the Docker image update check
 
 ## License
 

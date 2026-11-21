@@ -66,7 +66,9 @@ fn parse_endpoint(endpoint: &str) -> (&str, u16) {
 fn check_cert_expiry(host: &str, port: u16, tls_config: &Arc<ClientConfig>) -> Result<i64, String> {
     let addr = format!("{}:{}", host, port);
     let tcp = TcpStream::connect_timeout(
-        &addr.parse().map_err(|e| format!("invalid address: {}", e))?,
+        &addr
+            .parse()
+            .map_err(|e| format!("invalid address: {}", e))?,
         Duration::from_secs(10),
     )
     .map_err(|e| format!("connect failed: {}", e))?;
@@ -74,8 +76,8 @@ fn check_cert_expiry(host: &str, port: u16, tls_config: &Arc<ClientConfig>) -> R
     tcp.set_read_timeout(Some(Duration::from_secs(10)))
         .map_err(|e| format!("set timeout: {}", e))?;
 
-    let server_name = ServerName::try_from(host.to_string())
-        .map_err(|e| format!("invalid hostname: {}", e))?;
+    let server_name =
+        ServerName::try_from(host.to_string()).map_err(|e| format!("invalid hostname: {}", e))?;
 
     let conn = ClientConnection::new(tls_config.clone(), server_name)
         .map_err(|e| format!("TLS error: {}", e))?;
@@ -87,10 +89,7 @@ fn check_cert_expiry(host: &str, port: u16, tls_config: &Arc<ClientConfig>) -> R
     let _ = tls.read(&mut buf);
 
     // Extract the peer certificate
-    let certs = tls
-        .conn
-        .peer_certificates()
-        .ok_or("no peer certificates")?;
+    let certs = tls.conn.peer_certificates().ok_or("no peer certificates")?;
 
     let leaf = certs.first().ok_or("empty certificate chain")?;
 

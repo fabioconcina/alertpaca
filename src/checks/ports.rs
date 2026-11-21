@@ -64,14 +64,10 @@ fn check_ports_linux() -> Vec<CheckResult> {
 fn diff_ports(previous: &[Listener], current: &[Listener]) -> Vec<CheckResult> {
     use std::collections::HashSet;
 
-    let prev_set: HashSet<(String, u16)> = previous
-        .iter()
-        .map(|l| (l.addr.clone(), l.port))
-        .collect();
-    let curr_set: HashSet<(String, u16)> = current
-        .iter()
-        .map(|l| (l.addr.clone(), l.port))
-        .collect();
+    let prev_set: HashSet<(String, u16)> =
+        previous.iter().map(|l| (l.addr.clone(), l.port)).collect();
+    let curr_set: HashSet<(String, u16)> =
+        current.iter().map(|l| (l.addr.clone(), l.port)).collect();
 
     let new_listeners: Vec<_> = curr_set.difference(&prev_set).collect();
     let missing_listeners: Vec<_> = prev_set.difference(&curr_set).collect();

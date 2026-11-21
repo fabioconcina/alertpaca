@@ -178,7 +178,11 @@ fn running_images() -> Result<Vec<String>, String> {
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    let ids: Vec<&str> = stdout.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    let ids: Vec<&str> = stdout
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
     if ids.is_empty() {
         return Ok(vec![]);
     }
@@ -291,7 +295,13 @@ fn fetch_remote_digest(tls_config: &Arc<ClientConfig>, image: &ImageRef) -> Resu
     let path = format!("/v2/{}/manifests/{}", image.repo, image.tag);
     let accept = ("Accept".to_string(), MANIFEST_ACCEPT.to_string());
 
-    let resp = https_request(tls_config, &image.host, "HEAD", &path, std::slice::from_ref(&accept))?;
+    let resp = https_request(
+        tls_config,
+        &image.host,
+        "HEAD",
+        &path,
+        std::slice::from_ref(&accept),
+    )?;
 
     let resp = if resp.status == 401 {
         let challenge = resp
@@ -406,8 +416,8 @@ fn https_request(
     }
     request.push_str("\r\n");
 
-    let server_name = ServerName::try_from(host.to_string())
-        .map_err(|e| format!("invalid hostname: {}", e))?;
+    let server_name =
+        ServerName::try_from(host.to_string()).map_err(|e| format!("invalid hostname: {}", e))?;
     let conn = ClientConnection::new(tls_config.clone(), server_name)
         .map_err(|e| format!("TLS error: {}", e))?;
     let mut tls = StreamOwned::new(conn, tcp);
@@ -570,10 +580,14 @@ mod tests {
 
     #[test]
     fn test_parse_http_response() {
-        let raw = b"HTTP/1.1 200 OK\r\nDocker-Content-Digest: sha256:abc\r\nContent-Length: 2\r\n\r\nok";
+        let raw =
+            b"HTTP/1.1 200 OK\r\nDocker-Content-Digest: sha256:abc\r\nContent-Length: 2\r\n\r\nok";
         let resp = parse_http_response(raw).unwrap();
         assert_eq!(resp.status, 200);
-        assert_eq!(resp.headers.get("docker-content-digest").unwrap(), "sha256:abc");
+        assert_eq!(
+            resp.headers.get("docker-content-digest").unwrap(),
+            "sha256:abc"
+        );
         assert_eq!(resp.body, b"ok");
     }
 

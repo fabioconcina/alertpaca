@@ -59,7 +59,7 @@ pub(crate) fn notify(config: &NotifyConfig, results: &[CheckResult]) {
                     "🟡"
                 };
                 messages.push(format!(
-                    "{} {} — {} (was {})",
+                    "{} {}: {} (was {})",
                     icon, key, result.summary, prev
                 ));
             } else if result.status == CheckStatus::Ok && (prev == "Warning" || prev == "Critical")
@@ -70,7 +70,7 @@ pub(crate) fn notify(config: &NotifyConfig, results: &[CheckResult]) {
                     _ => CheckStatus::Warning,
                 };
                 if prev_status >= result.notify_minimum {
-                    messages.push(format!("🟢 {} — {} (recovered)", key, result.summary));
+                    messages.push(format!("🟢 {}: {} (recovered)", key, result.summary));
                 }
             }
         } else if is_problem(result.status) && result.status >= result.notify_minimum {
@@ -80,7 +80,7 @@ pub(crate) fn notify(config: &NotifyConfig, results: &[CheckResult]) {
             } else {
                 "🟡"
             };
-            messages.push(format!("{} {} — {}", icon, key, result.summary));
+            messages.push(format!("{} {}: {}", icon, key, result.summary));
         }
     }
 
@@ -121,7 +121,10 @@ fn send_ntfy(url: &str, body: &str) -> Result<(), String> {
     };
 
     let (host, port) = if let Some((h, p)) = authority.rsplit_once(':') {
-        (h, p.parse::<u16>().unwrap_or(if is_https { 443 } else { 80 }))
+        (
+            h,
+            p.parse::<u16>().unwrap_or(if is_https { 443 } else { 80 }),
+        )
     } else {
         (authority, if is_https { 443 } else { 80 })
     };
@@ -135,8 +138,8 @@ fn send_ntfy(url: &str, body: &str) -> Result<(), String> {
         .next()
         .ok_or("no address")?;
 
-    let tcp = TcpStream::connect_timeout(&socket_addr, timeout)
-        .map_err(|e| format!("connect: {}", e))?;
+    let tcp =
+        TcpStream::connect_timeout(&socket_addr, timeout).map_err(|e| format!("connect: {}", e))?;
     tcp.set_write_timeout(Some(timeout)).ok();
     tcp.set_read_timeout(Some(timeout)).ok();
 
@@ -153,10 +156,10 @@ fn send_ntfy(url: &str, body: &str) -> Result<(), String> {
         use rustls::{ClientConnection, StreamOwned};
 
         let tls_config = tls_client_config();
-        let server_name = ServerName::try_from(host.to_string())
-            .map_err(|e| format!("hostname: {}", e))?;
-        let conn = ClientConnection::new(tls_config, server_name)
-            .map_err(|e| format!("TLS: {}", e))?;
+        let server_name =
+            ServerName::try_from(host.to_string()).map_err(|e| format!("hostname: {}", e))?;
+        let conn =
+            ClientConnection::new(tls_config, server_name).map_err(|e| format!("TLS: {}", e))?;
         let mut tls = StreamOwned::new(conn, tcp);
         tls.write_all(request.as_bytes())
             .map_err(|e| format!("write: {}", e))?;

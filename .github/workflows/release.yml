@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      # Versions of the build tools, pinned so a release is reproducible from
+      # its tag. The zig version matches the local `just cross` deploy build.
+      ZIG_VERSION: 0.15.1
+      CARGO_ZIGBUILD_VERSION: 0.24.1
+      CARGO_AUDITABLE_VERSION: 0.7.7
+    steps:
+      # gh publishes through the GitHub API with an explicit token, so the
+      # checkout doesn't need to leave git credentials on disk.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Fail before building anything if the tag and Cargo.toml disagree,
+      # otherwise `alertpaca --version` would report the wrong release.
+      - name: Check tag matches Cargo.toml version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"$/\1/p' Cargo.toml | head -1)
+          if [ "${GITHUB_REF_NAME}" != "v${version}" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match Cargo.toml version ${version}"
+            exit 1
+          fi
+          echo "VERSION=${version}" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+          targets: x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+
+      # No Rust or Zig cache: release binaries are built from a clean slate
+      # rather than from a cache another workflow run could have written.
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          use-cache: false
+
+      # cargo-zigbuild links against zig's glibc stubs, so the glibc floor is
+      # whatever the target suffix says rather than the runner's glibc.
+      # cargo-auditable embeds the dependency list in each binary, which is
+      # what Syft reads for the SBOMs (and what `cargo audit bin` checks).
+      - name: Install build tools
+        run: >-
+          cargo install --locked
+          "cargo-zigbuild@${CARGO_ZIGBUILD_VERSION}"
+          "cargo-auditable@${CARGO_AUDITABLE_VERSION}"
+
+      # glibc 2.17 is Rust's own minimum, so the binaries run on anything
+      # Rust supports (v0.10.0 and earlier needed glibc 2.30).
+      - name: Build
+        run: |
+          cargo auditable zigbuild --locked --release --target x86_64-unknown-linux-gnu.2.17
+          cargo auditable zigbuild --locked --release --target aarch64-unknown-linux-gnu.2.17
+          mkdir dist
+          cp target/x86_64-unknown-linux-gnu/release/alertpaca dist/alertpaca-linux-amd64
+          cp target/aarch64-unknown-linux-gnu/release/alertpaca dist/alertpaca-linux-arm64
+
+      - name: Smoke test
+        run: |
+          out=$(dist/alertpaca-linux-amd64 --version)
+          echo "$out"
+          case "$out" in
+            *" ${VERSION}") ;;
+            *) echo "::error::unexpected --version output: $out"; exit 1 ;;
+          esac
+
+      - name: Install Syft for release SBOMs
+        id: syft
+        uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c # v0.24.3
+
+      - name: Generate SBOMs and checksums
+        env:
+          SYFT: ${{ steps.syft.outputs.cmd }}
+        run: |
+          cd dist
+          for arch in amd64 arm64; do
+            "$SYFT" scan "file:alertpaca-linux-${arch}" -q \
+              -o "spdx-json=alertpaca_${VERSION}_linux_${arch}.sbom.json"
+          done
+          sha256sum alertpaca-linux-* alertpaca_*.sbom.json > checksums.txt
+          cat checksums.txt
+
+      - name: Attest release artifacts
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-checksums: dist/checksums.txt
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ -f RELEASE_NOTES.md ]; then
+            notes=(--notes-file RELEASE_NOTES.md)
+          else
+            notes=(--notes "Release ${GITHUB_REF_NAME}")
+          fi
+          gh release create "${GITHUB_REF_NAME}" --verify-tag \
+            --title "${GITHUB_REF_NAME}" "${notes[@]}" dist/*

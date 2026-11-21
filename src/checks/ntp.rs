@@ -68,14 +68,10 @@ fn query_ntp_offset(server: &str) -> Result<i64, String> {
 
     let t1 = unix_now_ms();
 
-    socket
-        .send(&packet)
-        .map_err(|e| format!("send: {}", e))?;
+    socket.send(&packet).map_err(|e| format!("send: {}", e))?;
 
     let mut resp = [0u8; 48];
-    let n = socket
-        .recv(&mut resp)
-        .map_err(|e| format!("recv: {}", e))?;
+    let n = socket.recv(&mut resp).map_err(|e| format!("recv: {}", e))?;
 
     let t4 = unix_now_ms();
 

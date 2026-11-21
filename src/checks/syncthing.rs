@@ -154,7 +154,11 @@ fn check_folders(
         let id = folder.get("id").and_then(Value::as_str).unwrap_or("?");
         let label = folder.get("label").and_then(Value::as_str).unwrap_or(id);
 
-        if folder.get("paused").and_then(Value::as_bool).unwrap_or(false) {
+        if folder
+            .get("paused")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
             paused.push(label.to_string());
             continue;
         }
@@ -236,7 +240,9 @@ fn parse_url(url: &str) -> Result<ParsedUrl<'_>, String> {
     };
 
     let (host, port) = if let Some((h, p)) = authority.rsplit_once(':') {
-        let port = p.parse::<u16>().map_err(|_| format!("invalid port: {}", p))?;
+        let port = p
+            .parse::<u16>()
+            .map_err(|_| format!("invalid port: {}", p))?;
         (h, port)
     } else {
         (authority, if https { 443 } else { 80 })

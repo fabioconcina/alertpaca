@@ -44,7 +44,9 @@ fn parse_url(url: &str) -> Result<ParsedUrl<'_>, String> {
     };
 
     let (host, port) = if let Some((h, p)) = authority.rsplit_once(':') {
-        let port = p.parse::<u16>().map_err(|_| format!("invalid port: {}", p))?;
+        let port = p
+            .parse::<u16>()
+            .map_err(|_| format!("invalid port: {}", p))?;
         (h, port)
     } else {
         (authority, if https { 443 } else { 80 })
@@ -114,7 +116,10 @@ fn check_one_endpoint(config: &EndpointConfig, tls_config: &Arc<ClientConfig>) -
     }
 }
 
-fn do_http_get(parsed: &ParsedUrl<'_>, tls_config: &Arc<ClientConfig>) -> Result<(u16, Duration), String> {
+fn do_http_get(
+    parsed: &ParsedUrl<'_>,
+    tls_config: &Arc<ClientConfig>,
+) -> Result<(u16, Duration), String> {
     let addr = format!("{}:{}", parsed.host, parsed.port);
     let timeout = Duration::from_secs(10);
 
@@ -164,15 +169,17 @@ fn do_http_get(parsed: &ParsedUrl<'_>, tls_config: &Arc<ClientConfig>) -> Result
 
 fn read_status_code(reader: &mut impl Read) -> Result<u16, String> {
     let mut buf = [0u8; 512];
-    let n = reader.read(&mut buf).map_err(|e| format!("read failed: {}", e))?;
+    let n = reader
+        .read(&mut buf)
+        .map_err(|e| format!("read failed: {}", e))?;
 
     if n < 12 {
         return Err("response too short".into());
     }
 
     // Parse "HTTP/1.x NNN ..."
-    let response = std::str::from_utf8(&buf[..n.min(32)])
-        .map_err(|_| "invalid response".to_string())?;
+    let response =
+        std::str::from_utf8(&buf[..n.min(32)]).map_err(|_| "invalid response".to_string())?;
 
     let status_str = response
         .split_whitespace()

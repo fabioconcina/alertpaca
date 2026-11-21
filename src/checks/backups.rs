@@ -2,7 +2,7 @@ use std::process::Command;
 use std::time::SystemTime;
 
 use super::{CheckResult, CheckStatus, Section};
-use crate::config::{parse_duration_secs, BackupConfig};
+use crate::config::{BackupConfig, parse_duration_secs};
 
 pub(crate) fn check_backups(configs: &[BackupConfig]) -> Vec<CheckResult> {
     configs.iter().map(check_one_backup).collect()
@@ -24,9 +24,7 @@ fn check_one_backup(config: &BackupConfig) -> CheckResult {
     };
 
     let age_secs = match config {
-        BackupConfig::File {
-            path, pattern, ..
-        } => check_file_backup(path, pattern),
+        BackupConfig::File { path, pattern, .. } => check_file_backup(path, pattern),
         BackupConfig::Restic {
             repo,
             password_file,
@@ -99,10 +97,15 @@ fn check_restic_backup(repo: &str, password_file: Option<&str>) -> Result<i64, S
         cmd.args(["--password-file", pf]);
     }
 
-    let output = cmd.output().map_err(|e| format!("restic not available: {}", e))?;
+    let output = cmd
+        .output()
+        .map_err(|e| format!("restic not available: {}", e))?;
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("restic error: {}", stderr.lines().next().unwrap_or("unknown")));
+        return Err(format!(
+            "restic error: {}",
+            stderr.lines().next().unwrap_or("unknown")
+        ));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -127,15 +130,17 @@ fn check_restic_backup(repo: &str, password_file: Option<&str>) -> Result<i64, S
 fn check_zfs_backup(dataset: &str) -> Result<i64, String> {
     let output = Command::new("zfs")
         .args([
-            "list", "-t", "snapshot", "-o", "creation", "-s", "creation",
-            "-H", "-p", dataset,
+            "list", "-t", "snapshot", "-o", "creation", "-s", "creation", "-H", "-p", dataset,
         ])
         .output()
         .map_err(|e| format!("zfs not available: {}", e))?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("zfs error: {}", stderr.lines().next().unwrap_or("unknown")));
+        return Err(format!(
+            "zfs error: {}",
+            stderr.lines().next().unwrap_or("unknown")
+        ));
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);

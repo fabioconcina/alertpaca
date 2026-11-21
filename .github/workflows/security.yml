@@ -1,0 +1,51 @@
+name: Security
+
+# Known-vulnerability and workflow-hardening checks. The weekly run matters:
+# new advisories land against unchanged code, so a quiet repo still needs a
+# re-scan. A failed scheduled run emails whoever last edited the cron line.
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  schedule:
+    - cron: "17 6 * * 1" # Mondays 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+
+      # Checks Cargo.lock against the RustSec advisory database. Fails on
+      # vulnerabilities; unmaintained/yanked crates are reported as warnings.
+      - name: cargo audit
+        run: |
+          cargo install --locked cargo-audit@0.23.0
+          cargo audit
+
+  zizmor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Audits .github/ (workflows + dependabot.yml) for unpinned actions,
+      # excessive permissions, template injection, credential persistence.
+      # The token enables the online audits (known-vulnerable actions,
+      # impostor commits).
+      - name: zizmor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run zizmor==1.31.1 --format=github .github/

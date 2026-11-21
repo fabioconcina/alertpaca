@@ -1,11 +1,11 @@
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
-use ratatui::Frame;
 
-use crate::checks::{CheckStatus, Section};
 use super::App;
+use crate::checks::{CheckStatus, Section};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -43,7 +43,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     let chunks = Layout::vertical([
         Constraint::Length(2), // header
-        Constraint::Min(1),   // body
+        Constraint::Min(1),    // body
         Constraint::Length(1), // footer
     ])
     .split(area);

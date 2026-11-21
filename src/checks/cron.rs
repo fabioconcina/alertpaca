@@ -5,10 +5,10 @@ use chrono::Local;
 #[cfg(target_os = "linux")]
 use std::process::Command;
 
-#[cfg(target_os = "linux")]
-use super::{CheckResult, CheckStatus, Section};
 #[cfg(not(target_os = "linux"))]
 use super::CheckResult;
+#[cfg(target_os = "linux")]
+use super::{CheckResult, CheckStatus, Section};
 #[cfg(target_os = "linux")]
 use crate::config::CronConfig;
 
@@ -21,11 +21,11 @@ struct CronJob {
 
 /// Parsed five-field cron schedule. Each field is a sorted vec of valid values.
 struct CronSchedule {
-    minutes: Vec<u8>,  // 0-59
-    hours: Vec<u8>,    // 0-23
-    doms: Vec<u8>,     // 1-31
-    months: Vec<u8>,   // 1-12
-    dows: Vec<u8>,     // 0-6 (0=Sunday)
+    minutes: Vec<u8>, // 0-59
+    hours: Vec<u8>,   // 0-23
+    doms: Vec<u8>,    // 1-31
+    months: Vec<u8>,  // 1-12
+    dows: Vec<u8>,    // 0-6 (0=Sunday)
 }
 
 impl CronSchedule {
@@ -144,18 +144,27 @@ fn parse_crontab_line(line: &str, is_system: bool, source: &str) -> Option<CronJ
         }
         let schedule = parse_schedule(expanded)?;
         let source = source.to_string();
-        return Some(CronJob { schedule, command, source });
+        return Some(CronJob {
+            schedule,
+            command,
+            source,
+        });
     }
 
     // Standard 5-field format
     // For system crontabs there's a user field after the 5 schedule fields
     let min_fields = if is_system { 7 } else { 6 };
-    let parts: Vec<&str> = trimmed.splitn(min_fields, |c: char| c.is_whitespace()).collect();
+    let parts: Vec<&str> = trimmed
+        .splitn(min_fields, |c: char| c.is_whitespace())
+        .collect();
     if parts.len() < min_fields {
         return None;
     }
 
-    let spec = format!("{} {} {} {} {}", parts[0], parts[1], parts[2], parts[3], parts[4]);
+    let spec = format!(
+        "{} {} {} {} {}",
+        parts[0], parts[1], parts[2], parts[3], parts[4]
+    );
     let schedule = parse_schedule(&spec)?;
 
     // Last element contains the command (everything after schedule + optional user field)
@@ -165,7 +174,11 @@ fn parse_crontab_line(line: &str, is_system: bool, source: &str) -> Option<CronJ
     }
 
     let source = source.to_string();
-    Some(CronJob { schedule, command, source })
+    Some(CronJob {
+        schedule,
+        command,
+        source,
+    })
 }
 
 /// Collect jobs from the current user's crontab.
@@ -265,7 +278,16 @@ fn check_journal(hint: &str, lookback_minutes: u64) -> bool {
 
     // Try journalctl first
     if let Ok(output) = Command::new("journalctl")
-        .args(["-t", "CRON", "--since", &since, "--no-pager", "-q", "-o", "cat"])
+        .args([
+            "-t",
+            "CRON",
+            "--since",
+            &since,
+            "--no-pager",
+            "-q",
+            "-o",
+            "cat",
+        ])
         .output()
     {
         if output.status.success() {
@@ -358,7 +380,7 @@ pub(crate) fn check_cron(config: &Option<CronConfig>) -> Vec<CheckResult> {
                 section: Section::Cron,
                 name: "cron".into(),
                 status: CheckStatus::Warning,
-                summary: format!("{} — no evidence of run ({})", label, job.source),
+                summary: format!("{}: no evidence of run ({})", label, job.source),
                 ..Default::default()
             });
         }
@@ -442,7 +464,10 @@ mod tests {
     #[test]
     fn test_parse_schedule_complex() {
         let sched = parse_schedule("*/5 9-17 * * 1-5").unwrap();
-        assert_eq!(sched.minutes, vec![0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
+        assert_eq!(
+            sched.minutes,
+            vec![0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]
+        );
         assert_eq!(sched.hours, vec![9, 10, 11, 12, 13, 14, 15, 16, 17]);
         assert_eq!(sched.dows, vec![1, 2, 3, 4, 5]);
     }
@@ -525,7 +550,8 @@ mod tests {
         let dt = NaiveDateTime::parse_from_str("2026-03-13 02:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         assert!(sched.matches(&dt));
 
-        let dt2 = NaiveDateTime::parse_from_str("2026-03-13 03:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let dt2 =
+            NaiveDateTime::parse_from_str("2026-03-13 03:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         assert!(!sched.matches(&dt2));
     }
 
@@ -537,7 +563,8 @@ mod tests {
         let dt = NaiveDateTime::parse_from_str("2026-03-13 02:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
         assert!(sched.matches(&dt));
         // And 02:01 does not
-        let dt2 = NaiveDateTime::parse_from_str("2026-03-13 02:01:00", "%Y-%m-%d %H:%M:%S").unwrap();
+        let dt2 =
+            NaiveDateTime::parse_from_str("2026-03-13 02:01:00", "%Y-%m-%d %H:%M:%S").unwrap();
         assert!(!sched.matches(&dt2));
     }
 }

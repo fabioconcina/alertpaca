@@ -13,7 +13,13 @@ pub(crate) fn check_services(systemd_config: &Option<SystemdConfig>) -> Vec<Chec
 
 fn check_systemd(config: &Option<SystemdConfig>) -> Vec<CheckResult> {
     let output = match Command::new("systemctl")
-        .args(["--no-pager", "--plain", "list-units", "--state=failed", "--no-legend"])
+        .args([
+            "--no-pager",
+            "--plain",
+            "list-units",
+            "--state=failed",
+            "--no-legend",
+        ])
         .output()
     {
         Ok(o) => o,
@@ -216,9 +222,12 @@ mod tests {
 
     #[test]
     fn test_parse_docker_healthy() {
-        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let containers: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"State": "running", "Status": "Up 2 hours", "Names": ["/nginx"]}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
         let results = parse_docker_containers(&containers);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].status, CheckStatus::Ok);
@@ -227,10 +236,13 @@ mod tests {
 
     #[test]
     fn test_parse_docker_unhealthy() {
-        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let containers: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"State": "running", "Status": "Up 2 hours (unhealthy)", "Names": ["/app"]},
             {"State": "running", "Status": "Up 1 hour", "Names": ["/db"]}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
         let results = parse_docker_containers(&containers);
         assert!(results.iter().any(|r| r.status == CheckStatus::Warning));
         assert!(results.iter().any(|r| r.status == CheckStatus::Ok));
@@ -238,11 +250,18 @@ mod tests {
 
     #[test]
     fn test_parse_docker_restarting() {
-        let containers: Vec<serde_json::Value> = serde_json::from_str(r#"[
+        let containers: Vec<serde_json::Value> = serde_json::from_str(
+            r#"[
             {"State": "restarting", "Status": "Restarting", "Names": ["/redis"]}
-        ]"#).unwrap();
+        ]"#,
+        )
+        .unwrap();
         let results = parse_docker_containers(&containers);
-        assert!(results.iter().any(|r| r.status == CheckStatus::Warning && r.summary.contains("redis")));
+        assert!(
+            results
+                .iter()
+                .any(|r| r.status == CheckStatus::Warning && r.summary.contains("redis"))
+        );
     }
 
     #[test]
