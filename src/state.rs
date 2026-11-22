@@ -126,6 +126,36 @@ impl PortState {
     }
 }
 
+// --- CPU counters ---
+
+/// Cumulative CPU time from the aggregate `cpu` line of /proc/stat, in clock
+/// ticks. Kept between runs so the CPU check can report the average usage
+/// since the previous run instead of a sub-second snapshot.
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub(crate) struct CpuTimes {
+    pub(crate) total: u64,
+    pub(crate) idle: u64,
+    pub(crate) timestamp: i64,
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+impl CpuTimes {
+    pub(crate) fn load() -> Option<Self> {
+        let path = data_dir().join("cpu.json");
+        fs::read_to_string(&path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+    }
+
+    pub(crate) fn save(&self) -> Result<()> {
+        let dir = ensure_data_dir()?;
+        let path = dir.join("cpu.json");
+        let json = serde_json::to_string_pretty(self)?;
+        atomic_write(&path, &json)
+    }
+}
+
 // --- Docker image digest cache ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

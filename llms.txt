@@ -60,7 +60,7 @@ Output schema:
         "section": "System",
         "name": "cpu",
         "status": "Ok",
-        "summary": "12% usage (4 cores)"
+        "summary": "12% avg over 5m (4 cores)"
       }
     ]
 
@@ -126,7 +126,7 @@ Single run, plain-text table to stdout.
 
 ## What it checks
 
-- CPU usage: warn >80%, critical >95%
+- CPU usage: warn >80%, critical >95%. On Linux it is the average since the previous run (from /proc/stat counters kept in cpu.json), so short spikes such as a cron job starting do not alert; used when the previous run was 10s to 30m ago. Otherwise (first run, after a reboot, macOS) it is a 200ms sample.
 - Memory usage: warn >80%, critical >95%
 - Swap usage: warn >50%, critical >90% (hidden if no swap)
 - Disk usage: warn >80%, critical >90%, with fill-rate prediction
@@ -212,4 +212,5 @@ Stored in ~/.local/share/alertpaca/:
 
 - history.json: disk usage history for fill-rate prediction
 - ports.json: last known listening ports for drift detection
+- cpu.json: CPU time counters from the previous run, for average CPU usage
 - last_status.json: previous check statuses for notification diffing

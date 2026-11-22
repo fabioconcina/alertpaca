@@ -17,13 +17,27 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
         }
     };
 
-    // CPU: needs two refreshes with a delay for accurate measurement
+    // CPU: average since the previous run when possible, else a short sample
     sys.refresh_cpu_usage();
-    thread::sleep(Duration::from_millis(200));
-    sys.refresh_cpu_usage();
-
-    let cpu_usage = sys.global_cpu_usage();
     let cpu_count = sys.cpus().len();
+    let (cpu_usage, cpu_window) = match interval_cpu_usage() {
+        Some((usage, secs)) => (usage, Some(secs)),
+        None => {
+            // Needs two refreshes with a delay for an accurate measurement
+            thread::sleep(Duration::from_millis(200));
+            sys.refresh_cpu_usage();
+            (sys.global_cpu_usage(), None)
+        }
+    };
+    let cpu_summary = match cpu_window {
+        Some(secs) => format!(
+            "{:.0}% avg over {} ({} cores)",
+            cpu_usage,
+            format_window(secs),
+            cpu_count
+        ),
+        None => format!("{:.0}% usage ({} cores)", cpu_usage, cpu_count),
+    };
     let cpu_status = if cpu_usage > 95.0 {
         CheckStatus::Critical
     } else if cpu_usage > 80.0 {
@@ -35,7 +49,7 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
         section: Section::System,
         name: "cpu".into(),
         status: cpu_status,
-        summary: format!("{:.0}% usage ({} cores)", cpu_usage, cpu_count),
+        summary: cpu_summary,
         ..Default::default()
     });
 
@@ -249,6 +263,96 @@ pub(crate) fn check_system(_config: &Config) -> Vec<CheckResult> {
     results
 }
 
+/// Shortest gap between runs worth averaging over. Below this, the average is
+/// as noisy as a snapshot, so the caller samples instead.
+const CPU_MIN_WINDOW_SECS: i64 = 10;
+/// Longest gap between runs worth averaging over. Above this, the average no
+/// longer says much about the current state, so the caller samples instead.
+const CPU_MAX_WINDOW_SECS: i64 = 30 * 60;
+
+/// Average CPU usage (percent) and window length (seconds) since the counters
+/// stored by the previous run, then stores the current counters for the next
+/// run. Returns None on the first run, when the stored counters are unusable
+/// (reboot, gap out of range), or off Linux.
+#[cfg(target_os = "linux")]
+fn interval_cpu_usage() -> Option<(f32, u64)> {
+    use crate::state::CpuTimes;
+
+    let stat = std::fs::read_to_string("/proc/stat").ok()?;
+    let now = chrono::Utc::now().timestamp();
+    let current = parse_proc_stat(&stat, now)?;
+    let previous = CpuTimes::load();
+    // Keep recent counters when this run follows too closely (a manual TUI
+    // refresh, say), so the window keeps growing instead of resetting.
+    let too_soon = previous.is_some_and(|p| {
+        (0..CPU_MIN_WINDOW_SECS).contains(&(now - p.timestamp))
+            && current.total >= p.total
+            && current.idle >= p.idle
+    });
+    if !too_soon {
+        // Best-effort, like the disk history
+        let _ = current.save();
+    }
+    cpu_usage_between(&previous?, &current)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn interval_cpu_usage() -> Option<(f32, u64)> {
+    None
+}
+
+/// Parse the aggregate `cpu` line of /proc/stat. Idle time counts idle and
+/// iowait; total counts user, nice, system, idle, iowait, irq, softirq and
+/// steal (guest time is already included in user and nice).
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn parse_proc_stat(stat: &str, timestamp: i64) -> Option<crate::state::CpuTimes> {
+    let line = stat.lines().find(|l| l.starts_with("cpu "))?;
+    let fields: Vec<u64> = line
+        .split_whitespace()
+        .skip(1)
+        .take(8)
+        .map(|f| f.parse().ok())
+        .collect::<Option<_>>()?;
+    if fields.len() < 4 {
+        return None;
+    }
+    let idle = fields[3] + fields.get(4).copied().unwrap_or(0);
+    let total = fields.iter().sum();
+    Some(crate::state::CpuTimes {
+        total,
+        idle,
+        timestamp,
+    })
+}
+
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn cpu_usage_between(
+    previous: &crate::state::CpuTimes,
+    current: &crate::state::CpuTimes,
+) -> Option<(f32, u64)> {
+    let window = current.timestamp - previous.timestamp;
+    if !(CPU_MIN_WINDOW_SECS..=CPU_MAX_WINDOW_SECS).contains(&window) {
+        return None;
+    }
+    // Counters reset on reboot
+    let total = current.total.checked_sub(previous.total)?;
+    let idle = current.idle.checked_sub(previous.idle)?;
+    if total == 0 || idle > total {
+        return None;
+    }
+    let busy = (total - idle) as f64 / total as f64 * 100.0;
+    Some((busy as f32, window as u64))
+}
+
+/// Seconds below 90, whole minutes above: "45s", "5m"
+fn format_window(secs: u64) -> String {
+    if secs < 90 {
+        format!("{}s", secs)
+    } else {
+        format!("{}m", (secs + 30) / 60)
+    }
+}
+
 fn skipped(name: &str, err: &sysinfo::Error) -> CheckResult {
     CheckResult {
         section: Section::System,
@@ -385,6 +489,66 @@ mod tests {
         assert_eq!(format_uptime(300), "5m");
         assert_eq!(format_uptime(3661), "1h 1m");
         assert_eq!(format_uptime(90061), "1d 1h");
+    }
+
+    fn times(total: u64, idle: u64, timestamp: i64) -> crate::state::CpuTimes {
+        crate::state::CpuTimes {
+            total,
+            idle,
+            timestamp,
+        }
+    }
+
+    #[test]
+    fn test_parse_proc_stat() {
+        let stat = "cpu  100 5 50 800 20 3 2 0 7 0\ncpu0 50 2 25 400 10 1 1 0 0 0\nintr 1 2\n";
+        let t = parse_proc_stat(stat, 42).unwrap();
+        // guest (7) and guest_nice (0) are not added again
+        assert_eq!(t, times(980, 820, 42));
+    }
+
+    #[test]
+    fn test_parse_proc_stat_rejects_garbage() {
+        assert!(parse_proc_stat("intr 1 2\n", 0).is_none());
+        assert!(parse_proc_stat("cpu  1 2 x 4\n", 0).is_none());
+        assert!(parse_proc_stat("cpu  1 2\n", 0).is_none());
+    }
+
+    #[test]
+    fn test_cpu_usage_between() {
+        // 1000 ticks elapsed, 250 of them busy
+        let (pct, secs) = cpu_usage_between(&times(0, 0, 0), &times(1000, 750, 300)).unwrap();
+        assert!((pct - 25.0).abs() < 0.01);
+        assert_eq!(secs, 300);
+    }
+
+    #[test]
+    fn test_cpu_usage_between_averages_out_a_spike() {
+        // A 1-minute burst at 100% inside an otherwise idle 5-minute window
+        // (8 cores, 100 ticks/s): 4800 busy ticks out of 24000
+        let (pct, _) = cpu_usage_between(&times(0, 0, 0), &times(24_000, 19_200, 300)).unwrap();
+        assert!((pct - 20.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_cpu_usage_between_rejects_unusable_windows() {
+        // Too short, too long, clock went backwards
+        assert!(cpu_usage_between(&times(0, 0, 100), &times(1000, 500, 105)).is_none());
+        assert!(cpu_usage_between(&times(0, 0, 0), &times(1000, 500, 3600)).is_none());
+        assert!(cpu_usage_between(&times(0, 0, 300), &times(1000, 500, 0)).is_none());
+        // Counters went backwards (reboot)
+        assert!(cpu_usage_between(&times(5000, 100, 0), &times(1000, 500, 300)).is_none());
+        assert!(cpu_usage_between(&times(0, 5000, 0), &times(1000, 500, 300)).is_none());
+        // No ticks elapsed
+        assert!(cpu_usage_between(&times(1000, 500, 0), &times(1000, 500, 300)).is_none());
+    }
+
+    #[test]
+    fn test_format_window() {
+        assert_eq!(format_window(45), "45s");
+        assert_eq!(format_window(299), "5m");
+        assert_eq!(format_window(301), "5m");
+        assert_eq!(format_window(900), "15m");
     }
 
     #[test]

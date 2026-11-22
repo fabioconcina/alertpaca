@@ -109,7 +109,7 @@ Runs all checks once, prints a JSON array to stdout, and exits. Suitable for pip
     "section": "System",
     "name": "cpu",
     "status": "Ok",
-    "summary": "12% usage (4 cores)"
+    "summary": "12% avg over 5m (4 cores)"
   },
   {
     "section": "Certificates",
@@ -167,7 +167,7 @@ Exit codes apply to `--json` and `--once` modes:
 
 | Check | Auto-detected | Status |
 |-------|:---:|--------|
-| CPU usage | ✓ | warn >80%, critical >95% |
+| CPU usage | ✓ | warn >80%, critical >95%, averaged since the previous run (Linux) |
 | Memory usage | ✓ | warn >80%, critical >95% |
 | Swap usage | ✓ | warn >50%, critical >90% |
 | Disk usage | ✓ | warn >80%, critical >90% |
@@ -269,6 +269,7 @@ Stored in `~/.local/share/alertpaca/`:
 
 - `history.json`: disk usage history for fill prediction
 - `ports.json`: last known listening ports for drift detection
+- `cpu.json`: CPU time counters from the previous run, for average CPU usage
 - `last_status.json`: previous check statuses for notification diffing
 - `images.json`: cached registry digests for the Docker image update check
 
